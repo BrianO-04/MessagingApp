@@ -3,9 +3,12 @@
 
 #include <time.h>
 
+#define MESSAGE_LEN 265
+#define USERNAME_LEN 16
+
 struct Message{
-    char user[16];
-    char message[256];
+    char user[USERNAME_LEN];
+    char text[MESSAGE_LEN];
     time_t sent;
 };
 
