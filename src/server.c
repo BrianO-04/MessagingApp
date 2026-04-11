@@ -13,7 +13,7 @@ int initialize_server(){
         perror("Failed to initialize socket");
         exit(EXIT_FAILURE);
     }else{
-        printf("Socket initialized");
+        printf("Socket initialized\n");
     }
 
     close(server_fd);
