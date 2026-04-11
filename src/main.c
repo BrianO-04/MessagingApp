@@ -8,11 +8,10 @@ int main(int argc, char *argv[]){
 
 
     if(argc == 1){
-
         //INIT CLIENT
-
+        printf("Initializing Client");
+        return initialize_client();
     }else if (argc == 2) {
-
         if(strcmp("server", argv[1]) == 0){
             //INIT SERVER
             printf("Initializing Server");
@@ -22,12 +21,9 @@ int main(int argc, char *argv[]){
             printf("Initializing Client");
             return initialize_client();
         }
-
     }else {
-
         printf("Expected one argument!\nUsage: ./MessagingApp client OR ./MessagingApp server");
         return EXIT_FAILURE;
-
     }
 
     return EXIT_SUCCESS;
