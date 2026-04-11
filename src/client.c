@@ -1,4 +1,5 @@
 #include "client.h"
+#include "message.h"
 
 #include <asm-generic/socket.h>
 #include <stdio.h>
@@ -14,6 +15,8 @@ int initialize_client(char *uname){
 
     int client_fd;
     int status;
+
+    int running = 1;
 
     struct sockaddr_in server_addr;
 
@@ -38,17 +41,17 @@ int initialize_client(char *uname){
         return -1;
     }
 
-    // Send message to server
-    //Send Username
-    send(client_fd, message.user, strlen(message.user), 0);
-    //Send message
-    send(client_fd, message.text, strlen(message.text), 0);
+    while(running){
+        char message[MESSAGE_LEN];
+        printf("Enter Text: ");
+        fgets(message, sizeof(message), stdin);
 
-    printf("Message sent\n");
+        //Send Username
+        send(client_fd, uname, sizeof(char) * USERNAME_LEN, 0);
+        //Send message
+        send(client_fd, message, sizeof(char) * MESSAGE_LEN, 0);
+    }
 
-    // Read confirmation
-    // int valread = read(client_fd, buffer, 1024-1);
-    // printf("%s\n", buffer);
 
     close(client_fd);
     return 0;

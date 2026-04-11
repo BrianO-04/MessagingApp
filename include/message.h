@@ -3,7 +3,7 @@
 
 #include <time.h>
 
-#define MESSAGE_LEN 265
+#define MESSAGE_LEN 256
 #define USERNAME_LEN 16
 
 struct Message{

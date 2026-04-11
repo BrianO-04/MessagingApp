@@ -14,6 +14,7 @@ int initialize_server(){
 
     int server_fd;
     int opt = 1;
+    int running = 1;
 
     struct sockaddr_in address;
     socklen_t addrlen = sizeof(address);
@@ -55,21 +56,18 @@ int initialize_server(){
         exit(EXIT_FAILURE);
     }
 
-    // Read incoming message
-    // Read username
-    ssize_t valread = read(new_socket, buffer, USERNAME_LEN-1);
-    buffer[valread] = '\0';
-    printf("%s: ", buffer);
+    while(running){
+        // Read incoming message
+        // Read username
+        ssize_t valread = read(new_socket, buffer, USERNAME_LEN);
+        buffer[USERNAME_LEN-1] = '\0';
+        printf("%s: ", buffer);
 
-    // Read message text
-    valread = read(new_socket, buffer, MESSAGE_LEN-1);
-    buffer[valread] = '\0';
-    printf("%s\n", buffer);
-
-    // Send message
-    char* rec = "Message received";
-    send(new_socket, rec, strlen(rec), 0);
-    printf("Sending confirmation message");
+        // Read message text
+        valread = read(new_socket, buffer, MESSAGE_LEN);
+        buffer[MESSAGE_LEN-1] = '\0';
+        printf("%s", buffer);
+    }
 
     close(new_socket);
     close(server_fd);
