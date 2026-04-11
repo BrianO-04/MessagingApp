@@ -1,0 +1,3 @@
+/home/briano/Documents/MessagingApp/build/CMakeFiles/MessagingApp.dir
+/home/briano/Documents/MessagingApp/build/CMakeFiles/edit_cache.dir
+/home/briano/Documents/MessagingApp/build/CMakeFiles/rebuild_cache.dir
