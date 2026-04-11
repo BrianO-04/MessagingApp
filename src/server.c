@@ -1,4 +1,5 @@
 #include "server.h"
+#include "message.h"
 
 #include <asm-generic/socket.h>
 #include <stdio.h>
@@ -55,7 +56,14 @@ int initialize_server(){
     }
 
     // Read incoming message
-    ssize_t valread = read(new_socket, buffer, 1024-1);
+    // Read username
+    ssize_t valread = read(new_socket, buffer, USERNAME_LEN-1);
+    buffer[valread] = '\0';
+    printf("%s: ", buffer);
+
+    // Read message text
+    valread = read(new_socket, buffer, MESSAGE_LEN-1);
+    buffer[valread] = '\0';
     printf("%s\n", buffer);
 
     // Send message

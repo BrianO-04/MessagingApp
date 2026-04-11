@@ -10,7 +10,7 @@
 #include <arpa/inet.h>
 
 #define PORT 8080
-int initialize_client(){
+int initialize_client(struct Message message){
 
     int client_fd;
     int status;
@@ -39,9 +39,14 @@ int initialize_client(){
     }
 
     // Send message to server
-    char* message = "Test message";
-    send(client_fd, message, strlen(message), 0);
+    //Send Username
+    send(client_fd, message.user, strlen(message.user), 0);
+    //Send message
+    send(client_fd, message.text, strlen(message.text), 0);
+
     printf("Message sent\n");
+
+    // Read confirmation
     int valread = read(client_fd, buffer, 1024-1);
     printf("%s\n", buffer);
 

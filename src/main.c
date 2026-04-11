@@ -19,7 +19,13 @@ int main(int argc, char *argv[]){
         if(strcmp(argv[1], "client") == 0){
             //INIT CLIENT
             printf("Initializing Client\n");
-            return initialize_client();
+
+            struct Message msg;
+            strcpy(msg.user, argv[2]);
+            strcpy(msg.text, argv[3]);
+            msg.sent = 0;
+
+            return initialize_client(msg);
         }else{
             printf("Expected usage:\n./MessagingApp server\n./MessagingApp client {Username} {Message}");
             return EXIT_FAILURE;
