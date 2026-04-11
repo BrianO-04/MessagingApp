@@ -5,5 +5,6 @@
 
 int initialize_client(char *uname);
 
+void* server_listen(void* arg);
 
 #endif

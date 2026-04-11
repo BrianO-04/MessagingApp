@@ -142,10 +142,19 @@ void* client_listen(void* arg){
         // Read message text
         valread = read(connections[client_id], msgBuffer, MESSAGE_LEN);
         msgBuffer[MESSAGE_LEN-1] = '\0';
+
+        char final[USERNAME_LEN+MESSAGE_LEN];
+        snprintf(final, sizeof(final), "%s: %s", nameBuffer, msgBuffer);
+
         
         pthread_mutex_lock(&print_mutex);
-        printf("%s: %s", nameBuffer, msgBuffer);
+        printf("%s", final);
         pthread_mutex_unlock(&print_mutex);
+
+        for(int i = 0; i < client_count; i++){
+            if(i != client_id)
+                send(connections[i], final, sizeof(char) * (USERNAME_LEN + MESSAGE_LEN), 0);
+        }
 
         if(strcmp(msgBuffer, "/EXIT\n") == 0){ // SERVER SHUTDOWN COMMAND
             running = 0;

@@ -2,6 +2,7 @@
 #include "message.h"
 
 #include <asm-generic/socket.h>
+#include <pthread.h>
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
@@ -10,15 +11,13 @@
 #include <arpa/inet.h>
 
 #define PORT 8080
+
+int client_fd;
+int status;
+int client_active = 1;
+struct sockaddr_in server_addr;
+
 int initialize_client(char *uname){
-
-    int client_fd;
-    int status;
-
-    int running = 1;
-
-    struct sockaddr_in server_addr;
-
     char buffer[1024] = { 0 };
 
     if((client_fd = socket(AF_INET, SOCK_STREAM, 0)) < 0){
@@ -40,9 +39,11 @@ int initialize_client(char *uname){
         return -1;
     }
 
-    while(running){
+    pthread_t messaging_thread;
+    pthread_create(&messaging_thread, NULL, server_listen, NULL);
+
+    while(client_active){
         char message[MESSAGE_LEN];
-        printf("Enter Text: ");
         fgets(message, sizeof(message), stdin);
 
         //Send Username
@@ -51,11 +52,25 @@ int initialize_client(char *uname){
         send(client_fd, message, sizeof(char) * MESSAGE_LEN, 0);
 
         if(strcmp(message, "/EXIT\n") == 0){ // SERVER SHUTDOWN COMMAND
-            running = 0;
+            client_active = 0;
         }
     }
 
 
     close(client_fd);
     return 0;
+}
+
+
+void* server_listen(void* arg){
+    char buffer[1024] = { 0 };
+
+    while(client_active){
+        ssize_t valread = read(client_fd, buffer, USERNAME_LEN+MESSAGE_LEN);
+        buffer[USERNAME_LEN+MESSAGE_LEN-1] = '\0';
+        printf("%s", buffer);
+    }
+
+    pthread_exit(NULL);
+    return NULL;
 }
