@@ -1,5 +1,4 @@
 #include "server.h"
-#include "message.h"
 
 #include <asm-generic/socket.h>
 #include <stdio.h>
