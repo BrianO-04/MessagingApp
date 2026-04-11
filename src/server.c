@@ -15,6 +15,7 @@ int initialize_server(){
     int opt = 1;
 
     struct sockaddr_in address;
+    socklen_t addrlen = sizeof(address);
 
     char buffer[1024] = { 0 };
 
@@ -35,11 +36,25 @@ int initialize_server(){
     address.sin_port = htons(PORT);
 
     // Bind socket to port
-    if(bind(server_fd, (struct sockaddr*)&address, sizeof(address)) < 0){
+    if(bind(server_fd, (struct sockaddr*)&address, addrlen) < 0){
         perror("Failed to bind");
         exit(EXIT_FAILURE);
     }
 
+    // Start listening
+    if(listen(server_fd, 3) < 0){
+        perror("listen");
+        exit(EXIT_FAILURE);
+    }
+
+    // Accept a single connection
+    int new_socket;
+    if((new_socket = accept(server_fd, (struct sockaddr*)&address, &addrlen)) < 0){
+        perror("accept");
+        exit(EXIT_FAILURE);
+    }
+
+    close(new_socket);
     close(server_fd);
     return 0;
 }
