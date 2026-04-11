@@ -1,7 +1,0 @@
-# ninja log v7
-0	19	1775935235181056284	CMakeFiles/MessagingApp.dir/src/main.c.o	74c2829a8745cff0
-18	29	1775934988815128616	MessagingApp	e89d2efac7b0891d
-0	2	1775934913927873914	clean	9994edbd9979eb93
-0	11	1775935444453610104	CMakeFiles/MessagingApp.dir/src/client.c.o	b3f309e102ca3e32
-0	11	1775935444455074574	CMakeFiles/MessagingApp.dir/src/server.c.o	6c14b3c2e901b76
-11	23	1775935444464610488	MessagingApp	731dc74227c12b0e
