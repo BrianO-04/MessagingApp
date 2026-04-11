@@ -12,26 +12,21 @@ int main(int argc, char *argv[]){
             printf("Initializing Server\n");
             return initialize_server();
         }else{
-            printf("Expected usage:\n./MessagingApp server\n./MessagingApp client {Username} {Message}");
+            printf("Expected usage:\n./MessagingApp server\n./MessagingApp client {Username}");
             return EXIT_FAILURE;
         }
-    }else if(argc == 4){
+    }else if(argc == 3){
         if(strcmp(argv[1], "client") == 0){
             //INIT CLIENT
             printf("Initializing Client\n");
 
-            struct Message msg;
-            strcpy(msg.user, argv[2]);
-            strcpy(msg.text, argv[3]);
-            msg.sent = 0;
-
-            return initialize_client(msg);
+            return initialize_client(argv[2]);
         }else{
-            printf("Expected usage:\n./MessagingApp server\n./MessagingApp client {Username} {Message}");
+            printf("Expected usage:\n./MessagingApp server\n./MessagingApp client {Username}");
             return EXIT_FAILURE;
         }
     }else{
-        printf("Expected usage:\n./MessagingApp server\n./MessagingApp client {Username} {Message}");
+        printf("Expected usage:\n./MessagingApp server\n./MessagingApp client {Username}");
         return EXIT_FAILURE;
     }
 
