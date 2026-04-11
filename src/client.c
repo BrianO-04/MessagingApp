@@ -1,5 +1,4 @@
 #include "client.h"
-#include "message.h"
 
 #include <asm-generic/socket.h>
 #include <pthread.h>
@@ -9,8 +8,6 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
-
-#define PORT 8080
 
 int client_fd;
 int status;

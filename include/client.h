@@ -1,7 +1,7 @@
 #ifndef CLIENT_H_
 #define CLIENT_H_
 
-#include "message.h"
+#include "macros.h"
 
 int initialize_client(char *uname);
 

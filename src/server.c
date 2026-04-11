@@ -1,5 +1,4 @@
 #include "server.h"
-#include "message.h"
 
 #include <asm-generic/socket.h>
 #include <pthread.h>
@@ -10,7 +9,6 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 
-#define PORT 8080
 #define MAX_CLIENTS 32
 
 // GLOBAL VARIABLES

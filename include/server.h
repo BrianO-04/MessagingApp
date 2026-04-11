@@ -1,7 +1,7 @@
 #ifndef SERVER_H_
 #define SERVER_H_
 
-#include "message.h"
+#include "macros.h"
 
 int initialize_server();
 
