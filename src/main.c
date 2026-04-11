@@ -6,23 +6,26 @@
 
 int main(int argc, char *argv[]){
 
-
-    if(argc == 1){
-        //INIT CLIENT
-        printf("Initializing Client\n");
-        return initialize_client();
-    }else if (argc == 2) {
-        if(strcmp("server", argv[1]) == 0){
+    if(argc == 2){
+        if(strcmp(argv[1], "server") == 0){
             //INIT SERVER
             printf("Initializing Server\n");
             return initialize_server();
-        }else{ 
+        }else{
+            printf("Expected usage:\n./MessagingApp server\n./MessagingApp client {Username} {Message}");
+            return EXIT_FAILURE;
+        }
+    }else if(argc == 4){
+        if(strcmp(argv[1], "client") == 0){
             //INIT CLIENT
             printf("Initializing Client\n");
             return initialize_client();
+        }else{
+            printf("Expected usage:\n./MessagingApp server\n./MessagingApp client {Username} {Message}");
+            return EXIT_FAILURE;
         }
-    }else {
-        printf("Expected one argument!\nUsage: ./MessagingApp client OR ./MessagingApp server\n");
+    }else{
+        printf("Expected usage:\n./MessagingApp server\n./MessagingApp client {Username} {Message}");
         return EXIT_FAILURE;
     }
 
