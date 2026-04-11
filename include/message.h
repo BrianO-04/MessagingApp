@@ -3,7 +3,7 @@
 
 #include <time.h>
 
-struct message{
+struct Message{
     char user[16];
     char message[256];
     time_t sent;
