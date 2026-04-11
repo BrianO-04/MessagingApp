@@ -4,6 +4,7 @@
 #include <asm-generic/socket.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <unistd.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
@@ -53,6 +54,15 @@ int initialize_server(){
         perror("accept");
         exit(EXIT_FAILURE);
     }
+
+    // Read incoming message
+    ssize_t valread = read(new_socket, buffer, 1024-1);
+    printf("%s\n", buffer);
+
+    // Send message
+    char* rec = "Message received";
+    send(new_socket, rec, strlen(rec), 0);
+    printf("Sending confirmation message");
 
     close(new_socket);
     close(server_fd);
