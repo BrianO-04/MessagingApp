@@ -3,6 +3,7 @@
 
 #include <asm-generic/socket.h>
 #include <stdio.h>
+#include <string.h>
 #include <unistd.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
@@ -48,6 +49,10 @@ int initialize_client(char *uname){
         send(client_fd, uname, sizeof(char) * USERNAME_LEN, 0);
         //Send message
         send(client_fd, message, sizeof(char) * MESSAGE_LEN, 0);
+
+        if(strcmp(message, "/EXIT\n") == 0){ // SERVER SHUTDOWN COMMAND
+            running = 0;
+        }
     }
 
 

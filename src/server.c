@@ -4,6 +4,7 @@
 #include <asm-generic/socket.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <unistd.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
@@ -66,6 +67,10 @@ int initialize_server(){
         valread = read(new_socket, buffer, MESSAGE_LEN);
         buffer[MESSAGE_LEN-1] = '\0';
         printf("%s", buffer);
+
+        if(strcmp(buffer, "/EXIT\n") == 0){ // SERVER SHUTDOWN COMMAND
+            running = 0;
+        }
     }
 
     close(new_socket);
