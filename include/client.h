@@ -3,7 +3,7 @@
 
 #include "message.h"
 
-int initialize_client();
+int initialize_client(struct Message message);
 
 
 #endif
