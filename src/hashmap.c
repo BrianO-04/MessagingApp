@@ -44,7 +44,6 @@ struct User* get(char* key, struct User** hash_table){
 
     struct User* curr = hash_table[hash_index];
     while(curr != NULL){
-        printf("key %s, curr %s\n", key, curr->username);
         if(strcmp(key, curr->username) == 0){
             return curr;
         }
