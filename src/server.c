@@ -171,7 +171,30 @@ void* client_listen(void* arg){
             char msg[USERNAME_LEN + MESSAGE_LEN];
             snprintf(msg, sizeof(msg), "%s has disconnected\n", nameBuffer);
             send_to_all(client_id, msg, sizeof(char) * (USERNAME_LEN + MESSAGE_LEN));
-        }else{ // Normal message
+        }else if(strcmp(msgBuffer, "/list\n") == 0){ // List active users
+            char user_list[USERNAME_LEN + MESSAGE_LEN] = { 0 };
+            strcat(user_list, "Connected Users:\n");
+
+            for(int i = 0; i < MAX_CLIENTS; i++){
+                if(users[i] != NULL){
+                    struct User* curr = users[i];
+                    while(curr != NULL){
+                        if(strcmp(curr->username, nameBuffer) != 0){
+                            strcat(user_list, curr->username);
+                            if(curr->next != NULL){
+                                strcat(user_list, ", ");
+                            }
+                        }
+                        curr = curr->next;
+                    }
+                }
+            }
+
+            strcat(user_list, "\n\n");
+
+            send_to_ID(client_id, user_list, sizeof(char) * (USERNAME_LEN + MESSAGE_LEN));
+        }
+        else{ // Normal message
             send_to_all(client_id, final, sizeof(char) * (USERNAME_LEN + MESSAGE_LEN));
         }
         
@@ -194,6 +217,21 @@ void send_to_all(char* sender_id, char* msg, size_t size){
             while(curr != NULL){
                 if(strcmp(curr->username, sender_id) != 0){
                     send(curr->socket, msg, size, 0);
+                }
+                curr = curr->next;
+            }
+        }
+    }
+}
+
+void send_to_ID(char* client_id, char* msg, size_t size){
+    for(int i = 0; i < MAX_CLIENTS; i++){
+        if(users[i] != NULL){
+            struct User* curr = users[i];
+            while(curr != NULL){
+                if(strcmp(curr->username, client_id) == 0){
+                    send(curr->socket, msg, size, 0);
+                    return;
                 }
                 curr = curr->next;
             }
