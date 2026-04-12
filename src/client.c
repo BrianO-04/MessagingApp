@@ -3,6 +3,7 @@
 #include <asm-generic/socket.h>
 #include <pthread.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 #include <sys/socket.h>
@@ -15,8 +16,16 @@ int status;
 int client_active = 1;
 struct sockaddr_in server_addr;
 
-int initialize_client(char *uname, char *ip){
+int main(int argc, char *argv[]){
     char buffer[1024] = { 0 };
+
+    if(argc != 3){
+        printf("Expected usage: ./MessagingApp {name} {IP}\n");
+        return EXIT_FAILURE;
+    }
+
+    char* uname = argv[1];
+    char* ip = argv[2];
 
     if((client_fd = socket(AF_INET, SOCK_STREAM, 0)) < 0){
         perror("Failed to create socket");

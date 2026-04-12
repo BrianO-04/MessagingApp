@@ -3,7 +3,7 @@
 
 #include "macros.h"
 
-int initialize_server();
+int main(int argc, char *argv[]);
 
 // Listen for new clients
 void* connection_listen(void* arg);

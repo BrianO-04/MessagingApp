@@ -3,8 +3,6 @@ project(MessagingApp VERSION 0.1.0 LANGUAGES C)
 
 include_directories(include)
 include_directories(src)
-add_executable(MessagingApp 
-    src/main.c
-    src/client.c
-    src/server.c)
+add_executable(MessagingApp src/client.c)
+add_executable(MessagingServer src/server.c)
 
