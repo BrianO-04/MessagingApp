@@ -9,6 +9,7 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 
+// GLOBAL VARIABLES
 int client_fd;
 int status;
 int client_active = 1;
