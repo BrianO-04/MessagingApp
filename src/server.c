@@ -1,4 +1,5 @@
 #include "server.h"
+#include "user.h"
 
 #include <asm-generic/socket.h>
 #include <pthread.h>
