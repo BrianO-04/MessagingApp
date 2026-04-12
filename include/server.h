@@ -11,4 +11,7 @@ void* connection_listen(void* arg);
 // Listen to clients
 void* client_listen(void* arg);
 
+// Send a message to all connected clients
+void send_to_all(char* sender_id, char* msg, size_t size);
+
 #endif

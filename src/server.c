@@ -1,4 +1,5 @@
 #include "server.h"
+#include "macros.h"
 #include "user.h"
 #include "hashmap.h"
 
@@ -19,9 +20,10 @@ int server_fd;
 struct sockaddr_in address;
 socklen_t addrlen = sizeof(address);
 
-int connections[MAX_CLIENTS] = { 0 };
 pthread_t client_threads[MAX_CLIENTS] = { 0 };
 int client_count = 0;
+
+struct User** users;
 
 // Mutex
 pthread_mutex_t print_mutex = PTHREAD_MUTEX_INITIALIZER;
@@ -29,6 +31,11 @@ pthread_mutex_t join_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 int main(int argc, char *argv[]){
     char buffer[1024] = { 0 };
+
+    users = malloc((sizeof(struct User*)) * MAX_CLIENTS);
+    for(int i = 0; i < MAX_CLIENTS; i++){
+        users[i] = NULL;
+    }
 
     // Create socket FD
     if((server_fd = socket(AF_INET, SOCK_STREAM, 0)) < 0){
@@ -60,6 +67,7 @@ int main(int argc, char *argv[]){
 
     pthread_t join_thread;
 
+    
     pthread_create(&join_thread, NULL, connection_listen, NULL);
 
     pthread_join(join_thread, NULL);
@@ -70,12 +78,19 @@ int main(int argc, char *argv[]){
     }
 
     close(server_fd);
+
+    for(int i = 0; i < MAX_CLIENTS; i++){
+        if(users[i] != NULL){
+            free(users[i]);
+        }
+    }
+    free(users);
+
     return EXIT_SUCCESS;
 }
 
 void* connection_listen(void* arg){
-
-    while(running){
+    while(1){
         // Accept a single connection
         int new_socket;
         if((new_socket = accept(server_fd, (struct sockaddr*)&address, &addrlen)) < 0){
@@ -85,12 +100,32 @@ void* connection_listen(void* arg){
 
         pthread_mutex_lock(&join_mutex);
 
-        connections[client_count] = new_socket;
-
         pthread_t client_thread;
 
-        int* clientID = malloc(sizeof(int));
-        *clientID = client_count++; 
+        char* clientID = malloc(sizeof(char) * USERNAME_LEN);
+
+        // Get username
+        char nameBuffer[USERNAME_LEN] = { 0 };
+        ssize_t valread = read(new_socket, nameBuffer, USERNAME_LEN);
+        nameBuffer[USERNAME_LEN-1] = '\0';
+        printf("%s joined the chat\n", nameBuffer);
+
+        // Assign values
+        struct User* new_user = malloc(sizeof(struct User));
+        new_user->username = malloc(sizeof(char) * USERNAME_LEN);
+
+        strcpy(new_user->username, nameBuffer);
+        strcpy(clientID, nameBuffer);
+
+        new_user->next = NULL;
+        new_user->socket = new_socket;
+
+        // Insert into users array
+        put(new_user->username, new_user, users);
+
+        client_count++;
+
+        fflush(stdout);
 
         pthread_create(&client_thread, NULL, client_listen, clientID);
 
@@ -102,19 +137,25 @@ void* connection_listen(void* arg){
 }
 
 void* client_listen(void* arg){
-    int client_id = *(int*)arg;
+    char client_id[USERNAME_LEN];
+    strcpy(client_id, (char*)arg);
     free(arg);
+
     char nameBuffer[1024] = { 0 };
     char msgBuffer[1024] = { 0 };
 
-    while(running){
+    int client_running = 1;
+
+    struct User* user = get(client_id, users);
+
+    while(client_running){
         // Read incoming message
         // Read username
-        ssize_t valread = read(connections[client_id], nameBuffer, USERNAME_LEN);
+        ssize_t valread = read(user->socket, nameBuffer, USERNAME_LEN);
         nameBuffer[USERNAME_LEN-1] = '\0';
 
         // Read message text
-        valread = read(connections[client_id], msgBuffer, MESSAGE_LEN);
+        valread = read(user->socket, msgBuffer, MESSAGE_LEN);
         msgBuffer[MESSAGE_LEN-1] = '\0';
 
         char final[USERNAME_LEN+MESSAGE_LEN];
@@ -125,16 +166,37 @@ void* client_listen(void* arg){
         printf("%s", final);
         pthread_mutex_unlock(&print_mutex);
 
-        for(int i = 0; i < client_count; i++){
-            if(i != client_id)
-                send(connections[i], final, sizeof(char) * (USERNAME_LEN + MESSAGE_LEN), 0);
+        if(strcmp(msgBuffer, "/EXIT\n") == 0){ // Client Disconnect Command
+            client_running = 0;
+            char msg[USERNAME_LEN + MESSAGE_LEN];
+            snprintf(msg, sizeof(msg), "%s has disconnected\n", nameBuffer);
+            send_to_all(client_id, msg, sizeof(char) * (USERNAME_LEN + MESSAGE_LEN));
+        }else{ // Normal message
+            send_to_all(client_id, final, sizeof(char) * (USERNAME_LEN + MESSAGE_LEN));
         }
-
-        if(strcmp(msgBuffer, "/EXIT\n") == 0){ // SERVER SHUTDOWN COMMAND
-            running = 0;
-        }
+        
     }
+
+    pthread_mutex_lock(&join_mutex);
+
+    delete(client_id, users);
+
+    pthread_mutex_unlock(&join_mutex);
 
     pthread_exit(NULL);
     return NULL;
+}
+
+void send_to_all(char* sender_id, char* msg, size_t size){
+    for(int i = 0; i < MAX_CLIENTS; i++){
+        if(users[i] != NULL){
+            struct User* curr = users[i];
+            while(curr != NULL){
+                if(strcmp(curr->username, sender_id) != 0){
+                    send(curr->socket, msg, size, 0);
+                }
+                curr = curr->next;
+            }
+        }
+    }
 }

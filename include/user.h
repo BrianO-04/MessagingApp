@@ -2,7 +2,7 @@
 #define USER_H_
 
 struct User{
-    char username[16];
+    char* username;
     int socket;
 
     // Linked list thing for hash map
