@@ -6,27 +6,29 @@
 
 int main(int argc, char *argv[]){
 
+    char* CORRECT_INPUT = "Expected usage:\n./MessagingApp server\n./MessagingApp client {Username} {IP}";
+
     if(argc == 2){
         if(strcmp(argv[1], "server") == 0){
             //INIT SERVER
             printf("Initializing Server\n");
             return initialize_server();
         }else{
-            printf("Expected usage:\n./MessagingApp server\n./MessagingApp client {Username}");
+            printf("%s\n", CORRECT_INPUT);
             return EXIT_FAILURE;
         }
-    }else if(argc == 3){
+    }else if(argc == 4){
         if(strcmp(argv[1], "client") == 0){
             //INIT CLIENT
             printf("Initializing Client\n");
 
             return initialize_client(argv[2]);
         }else{
-            printf("Expected usage:\n./MessagingApp server\n./MessagingApp client {Username}");
+            printf("%s\n", CORRECT_INPUT);
             return EXIT_FAILURE;
         }
     }else{
-        printf("Expected usage:\n./MessagingApp server\n./MessagingApp client {Username}");
+        printf("%s\n", CORRECT_INPUT);
         return EXIT_FAILURE;
     }
 
