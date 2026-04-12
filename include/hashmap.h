@@ -2,7 +2,6 @@
 #define HASH_H_
 
 #include "user.h"
-#include <math.h>
 
 #define MAX_CLIENTS 64
 

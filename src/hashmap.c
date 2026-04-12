@@ -13,7 +13,7 @@ int hash(char* key){
 
     int i = 0;
     while(key[i] != '\0'){
-        hashed += (int)key[i] * pow(p, i);
+        hashed = (hashed * p + key[i]) % MAX_CLIENTS;
         i++;
     }
 
@@ -30,10 +30,10 @@ int put(char* key, struct User* user, struct User** hash_table){
     }
 
     struct User* curr = hash_table[hash_index];
-    while(curr != NULL){
+    while(curr->next != NULL){
         curr = curr->next;
     }
-    curr = user;
+    curr->next = user;
 
     return 1;
 }
