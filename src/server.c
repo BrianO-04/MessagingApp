@@ -148,6 +148,10 @@ void* client_listen(void* arg){
 
     struct User* user = get(client_id, users);
 
+    char joinMSG[USERNAME_LEN + MESSAGE_LEN];
+    snprintf(joinMSG, sizeof(joinMSG), "%s joined the chat\n", user->username);
+    send_to_all(nameBuffer, joinMSG, sizeof(char) * (USERNAME_LEN + MESSAGE_LEN));
+
     while(client_running){
         // Read incoming message
         // Read username
@@ -181,9 +185,7 @@ void* client_listen(void* arg){
                     while(curr != NULL){
                         if(strcmp(curr->username, nameBuffer) != 0){
                             strcat(user_list, curr->username);
-                            if(curr->next != NULL){
-                                strcat(user_list, ", ");
-                            }
+                            strcat(user_list, ", ");
                         }
                         curr = curr->next;
                     }
