@@ -141,7 +141,6 @@ void* client_listen(void* arg){
     strcpy(client_id, (char*)arg);
     free(arg);
 
-    char nameBuffer[1024] = { 0 };
     char msgBuffer[1024] = { 0 };
 
     int client_running = 1;
@@ -150,20 +149,16 @@ void* client_listen(void* arg){
 
     char joinMSG[USERNAME_LEN + MESSAGE_LEN];
     snprintf(joinMSG, sizeof(joinMSG), "%s joined the chat\n", user->username);
-    send_to_all(nameBuffer, joinMSG, sizeof(char) * (USERNAME_LEN + MESSAGE_LEN));
+    send_to_all(user->username, joinMSG, sizeof(char) * (USERNAME_LEN + MESSAGE_LEN));
 
     while(client_running){
         // Read incoming message
-        // Read username
-        ssize_t valread = read(user->socket, nameBuffer, USERNAME_LEN);
-        nameBuffer[USERNAME_LEN-1] = '\0';
-
         // Read message text
-        valread = read(user->socket, msgBuffer, MESSAGE_LEN);
+        ssize_t valread = read(user->socket, msgBuffer, MESSAGE_LEN);
         msgBuffer[MESSAGE_LEN-1] = '\0';
 
         char final[USERNAME_LEN+MESSAGE_LEN];
-        snprintf(final, sizeof(final), "%s: %s", nameBuffer, msgBuffer);
+        snprintf(final, sizeof(final), "%s: %s", user->username, msgBuffer);
 
         
         pthread_mutex_lock(&print_mutex);
@@ -173,7 +168,7 @@ void* client_listen(void* arg){
         if(strcmp(msgBuffer, "/EXIT\n") == 0){ // Client Disconnect Command
             client_running = 0;
             char msg[USERNAME_LEN + MESSAGE_LEN];
-            snprintf(msg, sizeof(msg), "%s has disconnected\n", nameBuffer);
+            snprintf(msg, sizeof(msg), "%s has disconnected\n", user->username);
             send_to_all(client_id, msg, sizeof(char) * (USERNAME_LEN + MESSAGE_LEN));
         }else if(strcmp(msgBuffer, "/list\n") == 0){ // List active users
             char user_list[USERNAME_LEN + MESSAGE_LEN] = { 0 };
@@ -183,7 +178,7 @@ void* client_listen(void* arg){
                 if(users[i] != NULL){
                     struct User* curr = users[i];
                     while(curr != NULL){
-                        if(strcmp(curr->username, nameBuffer) != 0){
+                        if(strcmp(curr->username, user->username) != 0){
                             strcat(user_list, curr->username);
                             strcat(user_list, ", ");
                         }

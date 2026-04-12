@@ -54,8 +54,6 @@ int main(int argc, char *argv[]){
         char message[MESSAGE_LEN];
         fgets(message, sizeof(message), stdin);
 
-        //Send Username
-        send(client_fd, uname, sizeof(char) * USERNAME_LEN, 0);
         //Send message
         send(client_fd, message, sizeof(char) * MESSAGE_LEN, 0);
 
