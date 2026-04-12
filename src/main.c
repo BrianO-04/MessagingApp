@@ -22,7 +22,7 @@ int main(int argc, char *argv[]){
             //INIT CLIENT
             printf("Initializing Client\n");
 
-            return initialize_client(argv[2]);
+            return initialize_client(argv[2], argv[3]);
         }else{
             printf("%s\n", CORRECT_INPUT);
             return EXIT_FAILURE;

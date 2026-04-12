@@ -15,7 +15,7 @@ int status;
 int client_active = 1;
 struct sockaddr_in server_addr;
 
-int initialize_client(char *uname){
+int initialize_client(char *uname, char *ip){
     char buffer[1024] = { 0 };
 
     if((client_fd = socket(AF_INET, SOCK_STREAM, 0)) < 0){
@@ -26,7 +26,7 @@ int initialize_client(char *uname){
     server_addr.sin_port = htons(PORT);
 
     // Convert text address to binary
-    if(inet_pton(AF_INET, "127.0.0.1", &server_addr.sin_addr) <= 0){
+    if(inet_pton(AF_INET, ip, &server_addr.sin_addr) <= 0){
         printf("Invalid address\n");
         return -1;
     }

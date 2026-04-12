@@ -3,7 +3,7 @@
 
 #include "macros.h"
 
-int initialize_client(char *uname);
+int initialize_client(char *uname, char *ip);
 
 void* server_listen(void* arg);
 
