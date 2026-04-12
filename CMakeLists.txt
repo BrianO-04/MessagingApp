@@ -10,10 +10,4 @@ add_executable(MessagingServer
     src/hashmap.c
     src/server.c)
 
-include(CheckLibraryExists)
-check_library_exists(m pow "" LIBM_FOUND)
-
-if(LIBM_FOUND)
-    target_link_libraries(MessagingServer PRIVATE m)
-endif()
 
