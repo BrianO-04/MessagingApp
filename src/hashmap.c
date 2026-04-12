@@ -4,8 +4,6 @@
 #include <string.h>
 #include <unistd.h>
 
-#define HASHLEN 64
-
 // Polynomial Rolling Hash Function
 int hash(char* key){
     int hashed = 0;
@@ -16,7 +14,7 @@ int hash(char* key){
         hashed += (int)key[i] * pow(p, i);
     }
 
-    return hashed % HASHLEN;
+    return hashed % MAX_CLIENTS;
 }
 
 int put(char* key, struct User* user, struct User** hash_table){

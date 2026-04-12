@@ -1,5 +1,6 @@
 #include "server.h"
 #include "user.h"
+#include "hashmap.h"
 
 #include <asm-generic/socket.h>
 #include <pthread.h>
@@ -9,8 +10,6 @@
 #include <unistd.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
-
-#define MAX_CLIENTS 32
 
 // GLOBAL VARIABLES
 int running = 1;
