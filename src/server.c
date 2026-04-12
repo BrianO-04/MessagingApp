@@ -1,4 +1,5 @@
 #include "server.h"
+#include "macros.h"
 #include "user.h"
 #include "hashmap.h"
 
@@ -22,6 +23,8 @@ socklen_t addrlen = sizeof(address);
 int connections[MAX_CLIENTS] = { 0 };
 pthread_t client_threads[MAX_CLIENTS] = { 0 };
 int client_count = 0;
+
+struct User* users[MAX_CLIENTS] = { 0 };
 
 // Mutex
 pthread_mutex_t print_mutex = PTHREAD_MUTEX_INITIALIZER;
@@ -90,7 +93,21 @@ void* connection_listen(void* arg){
         pthread_t client_thread;
 
         int* clientID = malloc(sizeof(int));
-        *clientID = client_count++; 
+        *clientID = client_count; 
+
+        // Get username
+        char nameBuffer[1024] = { 0 };
+        ssize_t valread = read(new_socket, nameBuffer, USERNAME_LEN);
+        nameBuffer[USERNAME_LEN-1] = '\0';
+
+        // Assign values
+        struct User* new_user = malloc(sizeof(struct User));
+        strcpy(new_user->username, nameBuffer);
+        new_user->next = NULL;
+        new_user->socket = new_socket;
+
+        // Insert into users array
+        users[client_count++] = new_user;
 
         pthread_create(&client_thread, NULL, client_listen, clientID);
 
