@@ -45,6 +45,7 @@ int main(int argc, char *argv[]){
         printf("Connection failed");
         return -1;
     }
+    send(client_fd, uname, sizeof(char) * USERNAME_LEN, 0);
 
     pthread_t messaging_thread;
     pthread_create(&messaging_thread, NULL, server_listen, NULL);
@@ -58,7 +59,7 @@ int main(int argc, char *argv[]){
         //Send message
         send(client_fd, message, sizeof(char) * MESSAGE_LEN, 0);
 
-        if(strcmp(message, "/EXIT\n") == 0){ // SERVER SHUTDOWN COMMAND
+        if(strcmp(message, "/EXIT\n") == 0){ // Disconnect Command
             client_active = 0;
         }
     }

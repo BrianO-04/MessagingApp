@@ -1,5 +1,7 @@
 #include "hashmap.h"
+#include "macros.h"
 #include "user.h"
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
@@ -12,6 +14,7 @@ int hash(char* key){
     int i = 0;
     while(key[i] != '\0'){
         hashed += (int)key[i] * pow(p, i);
+        i++;
     }
 
     return hashed % MAX_CLIENTS;
@@ -23,13 +26,14 @@ int put(char* key, struct User* user, struct User** hash_table){
 
     if(hash_table[hash_index] == NULL){
         hash_table[hash_index] = user;
-    }else{
-        struct User* next = hash_table[hash_index]->next;
-        while(next != NULL){
-            next = next->next;
-        }
-        next->next = user;
+        return 1;
     }
+
+    struct User* curr = hash_table[hash_index];
+    while(curr != NULL){
+        curr = curr->next;
+    }
+    curr = user;
 
     return 1;
 }
@@ -38,22 +42,15 @@ struct User* get(char* key, struct User** hash_table){
 
     int hash_index = hash(key);
 
-    if(hash_table[hash_index] == NULL){
-        return NULL;
-    }else if(strcmp(key, hash_table[hash_index]->username) == 0){
-        return hash_table[hash_index];
-    }else{
-        struct User* next = hash_table[hash_index]->next;
-        while(next != NULL){
-            if(strcmp(key, next->username) == 0){
-                return next;
-            }
-            next = next->next;
+    struct User* curr = hash_table[hash_index];
+    while(curr != NULL){
+        if(strcmp(key, curr->username) == 0){
+            return curr;
         }
-        // If it wasn't found in that loop, it isn't in the table.
-        return NULL;
+        curr = curr->next;
     }
 
+    printf("User not found, returning null\n");
     return NULL;
 }
 
@@ -70,6 +67,7 @@ int delete(char* key, struct User** hash_table){
     }else{
         struct User* curr = hash_table[hash_index];
         hash_table[hash_index] = curr->next;
+        free(curr->username);
         free(curr);
         return 1;
     }
