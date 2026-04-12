@@ -58,30 +58,6 @@ int initialize_server(){
         exit(EXIT_FAILURE);
     }
 
-    // Accept a single connection
-    // int new_socket;
-    // if((new_socket = accept(server_fd, (struct sockaddr*)&address, &addrlen)) < 0){
-    //     perror("accept");
-    //     exit(EXIT_FAILURE);
-    // }
-
-    // while(running){
-    //     // Read incoming message
-    //     // Read username
-    //     ssize_t valread = read(new_socket, buffer, USERNAME_LEN);
-    //     buffer[USERNAME_LEN-1] = '\0';
-    //     printf("%s: ", buffer);
-
-    //     // Read message text
-    //     valread = read(new_socket, buffer, MESSAGE_LEN);
-    //     buffer[MESSAGE_LEN-1] = '\0';
-    //     printf("%s", buffer);
-
-    //     if(strcmp(buffer, "/EXIT\n") == 0){ // SERVER SHUTDOWN COMMAND
-    //         running = 0;
-    //     }
-    // }
-
     pthread_t join_thread;
 
     pthread_create(&join_thread, NULL, connection_listen, NULL);
