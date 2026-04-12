@@ -57,7 +57,7 @@ struct User* get(char* key, struct User** hash_table){
     return NULL;
 }
 
-int remove(char* key, struct User** hash_table){
+int delete(char* key, struct User** hash_table){
 
     int hash_index = hash(key);
     
