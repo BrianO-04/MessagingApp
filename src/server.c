@@ -217,16 +217,6 @@ void send_to_all(char* sender_id, char* msg, size_t size){
 }
 
 void send_to_ID(char* client_id, char* msg, size_t size){
-    for(int i = 0; i < MAX_CLIENTS; i++){
-        if(users[i] != NULL){
-            struct User* curr = users[i];
-            while(curr != NULL){
-                if(strcmp(curr->username, client_id) == 0){
-                    send(curr->socket, msg, size, 0);
-                    return;
-                }
-                curr = curr->next;
-            }
-        }
-    }
+    struct User* target = get(client_id, users);
+    send(target->socket, msg, size, 0);
 }
