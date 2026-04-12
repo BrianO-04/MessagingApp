@@ -172,7 +172,7 @@ void* client_listen(void* arg){
             send_to_all(client_id, msg, sizeof(char) * (USERNAME_LEN + MESSAGE_LEN));
         }else if(strcmp(msgBuffer, "/list\n") == 0){ // List active users
             char user_list[USERNAME_LEN + MESSAGE_LEN] = { 0 };
-            strcat(user_list, "Connected Users:\n");
+            strcat(user_list, "Connected Users: ");
 
             for(int i = 0; i < MAX_CLIENTS; i++){
                 if(users[i] != NULL){
@@ -187,7 +187,7 @@ void* client_listen(void* arg){
                 }
             }
 
-            strcat(user_list, "\n\n");
+            strcat(user_list, "\n");
 
             send_to_ID(client_id, user_list, sizeof(char) * (USERNAME_LEN + MESSAGE_LEN));
         }
