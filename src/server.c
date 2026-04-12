@@ -27,7 +27,7 @@ int client_count = 0;
 pthread_mutex_t print_mutex = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t join_mutex = PTHREAD_MUTEX_INITIALIZER;
 
-int initialize_server(){
+int main(int argc, char *argv[]){
     char buffer[1024] = { 0 };
 
     // Create socket FD
@@ -70,7 +70,7 @@ int initialize_server(){
     }
 
     close(server_fd);
-    return 0;
+    return EXIT_SUCCESS;
 }
 
 void* connection_listen(void* arg){
