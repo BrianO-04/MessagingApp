@@ -1,6 +1,5 @@
 #include "hashmap.h"
 #include "user.h"
-#include <math.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
@@ -65,7 +64,7 @@ int remove(char* key, struct User** hash_table){
     int hash_index = hash(key);
     
     if(hash_table[hash_index] == NULL){
-        return NULL;
+        return 1;
     }else if(hash_table[hash_index]->next == NULL){
         free(hash_table[hash_index]);
         hash_table[hash_index] = NULL;

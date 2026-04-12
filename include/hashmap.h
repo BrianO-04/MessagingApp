@@ -2,6 +2,7 @@
 #define HASH_H_
 
 #include "user.h"
+#include <math.h>
 
 int put(char* key, struct User* user, struct User** hash_table);
 struct User* get(char* key, struct User** hash_table);
