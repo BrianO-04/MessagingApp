@@ -1,6 +1,6 @@
 #include "client.h"
 
-#include <pthread.h>
+#include <threads.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -46,8 +46,8 @@ int main(int argc, char *argv[]){
     }
     send(client_fd, uname, sizeof(char) * USERNAME_LEN, 0);
 
-    pthread_t messaging_thread;
-    pthread_create(&messaging_thread, NULL, server_listen, NULL);
+    thrd_t messaging_thread;
+    thrd_create(&messaging_thread, server_listen, NULL);
 
     while(client_active){
         char message[MESSAGE_LEN];
@@ -61,13 +61,16 @@ int main(int argc, char *argv[]){
         }
     }
 
+    // Probably need to figure this out later but that thread doesn't want to exit
+    // thrd_join(messaging_thread, NULL);
+
 
     close(client_fd);
     return 0;
 }
 
 
-void* server_listen(void* arg){
+int server_listen(void* arg){
     char buffer[1024] = { 0 };
 
     while(client_active){
@@ -76,6 +79,6 @@ void* server_listen(void* arg){
         printf("%s", buffer);
     }
 
-    pthread_exit(NULL);
-    return NULL;
+    thrd_exit(EXIT_SUCCESS);
+    return EXIT_SUCCESS;
 }

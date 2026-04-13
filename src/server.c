@@ -3,10 +3,11 @@
 #include "user.h"
 #include "hashmap.h"
 
-#include <pthread.h>
+#include <threads.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <threads.h>
 #include <unistd.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
@@ -19,16 +20,20 @@ int server_fd;
 struct sockaddr_in address;
 socklen_t addrlen = sizeof(address);
 
-pthread_t client_threads[MAX_CLIENTS] = { 0 };
+thrd_t client_threads[MAX_CLIENTS] = { 0 };
 int client_count = 0;
 
 struct User** users;
 
 // Mutex
-pthread_mutex_t print_mutex = PTHREAD_MUTEX_INITIALIZER;
-pthread_mutex_t hash_mutex = PTHREAD_MUTEX_INITIALIZER;
+mtx_t print_mutex;
+mtx_t hash_mutex;
 
 int main(int argc, char *argv[]){
+
+    // Initialize Mutex
+    mtx_init(&print_mutex, mtx_plain);
+    mtx_init(&hash_mutex, mtx_plain);
 
     // Create users hash table and set base values to NULL
     users = malloc((sizeof(struct User*)) * MAX_CLIENTS);
@@ -70,15 +75,15 @@ int main(int argc, char *argv[]){
     }
 
     // Create the thread that listens for incomming connections
-    pthread_t new_connections_thread;
-    pthread_create(&new_connections_thread, NULL, connection_listen, NULL);
+    thrd_t new_connections_thread;
+    thrd_create(&new_connections_thread, connection_listen, NULL);
 
     // Wait for the connection listening thread to finish
-    pthread_join(new_connections_thread, NULL);
+    thrd_join(new_connections_thread, NULL);
 
     // Wait for all client threads to finish executing before closing socket
     for(int i = 0; i < client_count; i++){
-        pthread_join(client_threads[i], NULL);
+        thrd_join(client_threads[i], NULL);
     }
     close(server_fd);
 
@@ -95,7 +100,7 @@ int main(int argc, char *argv[]){
     return EXIT_SUCCESS;
 }
 
-void* connection_listen(void* arg){
+int connection_listen(void* arg){
     while(1){
         // Wait for a connection attempt
         int new_socket;
@@ -118,23 +123,23 @@ void* connection_listen(void* arg){
         new_user->socket = new_socket;
 
         // Mutual exclusion, only one thread can modify the hash table at a time  
-        pthread_mutex_lock(&hash_mutex);
+        mtx_lock(&hash_mutex);
         
         put(new_user->username, new_user, users);
         client_count++;
 
         // Create a new thread for listening to that client's messages
         pthread_t client_thread;
-        pthread_create(&client_thread, NULL, client_listen, new_user);
+        thrd_create(&client_thread, client_listen, new_user);
 
-        pthread_mutex_unlock(&hash_mutex);
+        mtx_unlock(&hash_mutex);
     }
 
-    pthread_exit(NULL);
-    return NULL;
+    thrd_exit(EXIT_SUCCESS);
+    return EXIT_SUCCESS;
 }
 
-void* client_listen(void* arg){
+int client_listen(void* arg){
     // Get user struct and username from passed in arg
     struct User* user = (struct User*)arg;
     char* client_id = user->username;
@@ -158,9 +163,9 @@ void* client_listen(void* arg){
         snprintf(final, sizeof(final), "%s: %s", user->username, msgBuffer);
 
         // Lock the printing mutex before printing the message
-        pthread_mutex_lock(&print_mutex);
+        mtx_lock(&print_mutex);
         printf("%s", final);
-        pthread_mutex_unlock(&print_mutex);
+        mtx_unlock(&print_mutex);
 
         // Check if the message is a valid command
         if(strcmp(msgBuffer, "/EXIT\n") == 0){ // Client Disconnect Command
@@ -197,12 +202,12 @@ void* client_listen(void* arg){
 
     // If the loop has exited, the client has disconnected
     // Lock the hash mutex and delete the user
-    pthread_mutex_lock(&hash_mutex);
+    mtx_lock(&hash_mutex);
     delete(client_id, users);
-    pthread_mutex_unlock(&hash_mutex);
+    mtx_unlock(&hash_mutex);
 
-    pthread_exit(NULL);
-    return NULL;
+    thrd_exit(EXIT_SUCCESS);
+    return EXIT_SUCCESS;
 }
 
 void send_to_all(char* sender_id, char* msg, size_t size){

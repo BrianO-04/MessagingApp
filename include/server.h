@@ -6,10 +6,10 @@
 int main(int argc, char *argv[]);
 
 // Listen for new clients
-void* connection_listen(void* arg);
+int connection_listen(void* arg);
 
 // Listen to clients
-void* client_listen(void* arg);
+int client_listen(void* arg);
 
 // Send a message to all connected clients
 void send_to_all(char* sender_id, char* msg, size_t size);

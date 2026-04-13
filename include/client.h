@@ -5,6 +5,6 @@
 
 int main(int argc, char *argv[]);
 
-void* server_listen(void* arg);
+int server_listen(void* arg);
 
 #endif
