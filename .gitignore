@@ -59,3 +59,6 @@ build/
 
 # vscode
 .vscode/
+
+# MacOS Specific
+.DS_Store
