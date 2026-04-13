@@ -1,6 +1,12 @@
 #include "client.h"
 
+// MacOS does not support threads.h so use pthread.h instead
+#if defined(__APPLE__) && defined(__MACH__)
+#include <pthread.h>
+#else
 #include <threads.h>
+#endif
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -46,8 +52,15 @@ int main(int argc, char *argv[]){
     }
     send(client_fd, uname, sizeof(char) * USERNAME_LEN, 0);
 
+    #if defined(__APPLE__) && defined(__MACH__)
+    pthread_t messaging_thread;
+    pthread_create(&messaging_thread, NULL, server_listen, NULL);
+    #else
     thrd_t messaging_thread;
     thrd_create(&messaging_thread, server_listen, NULL);
+    #endif
+
+    
 
     while(client_active){
         char message[MESSAGE_LEN];
@@ -70,7 +83,11 @@ int main(int argc, char *argv[]){
 }
 
 
+#if defined(__APPLE__) && defined(__MACH__)
+void* server_listen(void* arg){
+#else
 int server_listen(void* arg){
+#endif
     char buffer[1024] = { 0 };
 
     while(client_active){
@@ -78,7 +95,11 @@ int server_listen(void* arg){
         buffer[USERNAME_LEN+MESSAGE_LEN-1] = '\0';
         printf("%s", buffer);
     }
-
+    #if defined(__APPLE__) && defined(__MACH__)
+    pthread_exit(NULL);
+    return NULL;
+    #else
     thrd_exit(EXIT_SUCCESS);
     return EXIT_SUCCESS;
+    #endif
 }
