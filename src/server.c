@@ -14,7 +14,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <threads.h>
 #include <unistd.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
@@ -27,16 +26,18 @@ int server_fd;
 struct sockaddr_in address;
 socklen_t addrlen = sizeof(address);
 
-thrd_t client_threads[MAX_CLIENTS] = { 0 };
+
 int client_count = 0;
 
 struct User** users;
 
 // Mutex
 #if defined(__APPLE__) && defined(__MACH__)
+pthread_t client_threads[MAX_CLIENTS] = { 0 };
 pthread_mutex_t print_mutex = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t hash_mutex = PTHREAD_MUTEX_INITIALIZER;
 #else
+thrd_t client_threads[MAX_CLIENTS] = { 0 };
 mtx_t print_mutex;
 mtx_t hash_mutex;
 #endif
