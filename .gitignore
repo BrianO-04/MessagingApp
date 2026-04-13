@@ -56,3 +56,9 @@ dkms.conf
 
 # cmake build folder
 build/
+
+# vscode
+.vscode/
+
+# MacOS Specific
+.DS_Store
