@@ -6,7 +6,7 @@ Self hosted direct messaging app written in C using sockets and the TCP protocol
 	$ git clone https://github.com/BrianO-04/MessagingApp.git/
 	$ cd MessagingApp	
 	$ mkdir build
-	$ cmake .S . -B
+	$ cmake .S . -B build
 	$ cmake --build build
 ## How to run client
 	$ cd build
