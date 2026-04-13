@@ -3,7 +3,14 @@
 #include "user.h"
 #include "hashmap.h"
 
+// MacOS does not support threads.h so use pthread.h instead
+#if defined(__APPLE__) && defined(__MACH__)
 #include <pthread.h>
+#else
+#include <threads.h>
+#endif
+
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -19,16 +26,29 @@ int server_fd;
 struct sockaddr_in address;
 socklen_t addrlen = sizeof(address);
 
-pthread_t client_threads[MAX_CLIENTS] = { 0 };
+
 int client_count = 0;
 
 struct User** users;
 
 // Mutex
+#if defined(__APPLE__) && defined(__MACH__)
+pthread_t client_threads[MAX_CLIENTS] = { 0 };
 pthread_mutex_t print_mutex = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t hash_mutex = PTHREAD_MUTEX_INITIALIZER;
+#else
+thrd_t client_threads[MAX_CLIENTS] = { 0 };
+mtx_t print_mutex;
+mtx_t hash_mutex;
+#endif
 
 int main(int argc, char *argv[]){
+    
+    #if !defined(__APPLE__) && !defined(__MACH__)
+    // Initialize Mutex
+    mtx_init(&print_mutex, mtx_plain);
+    mtx_init(&hash_mutex, mtx_plain);
+    #endif
 
     // Create users hash table and set base values to NULL
     users = malloc((sizeof(struct User*)) * MAX_CLIENTS);
@@ -69,6 +89,7 @@ int main(int argc, char *argv[]){
         exit(EXIT_FAILURE);
     }
 
+    #if defined(__APPLE__) && defined(__MACH__)
     // Create the thread that listens for incomming connections
     pthread_t new_connections_thread;
     pthread_create(&new_connections_thread, NULL, connection_listen, NULL);
@@ -80,6 +101,20 @@ int main(int argc, char *argv[]){
     for(int i = 0; i < client_count; i++){
         pthread_join(client_threads[i], NULL);
     }
+    #else
+    // Create the thread that listens for incomming connections
+    thrd_t new_connections_thread;
+    thrd_create(&new_connections_thread, connection_listen, NULL);
+
+    // Wait for the connection listening thread to finish
+    thrd_join(new_connections_thread, NULL);
+
+    // Wait for all client threads to finish executing before closing socket
+    for(int i = 0; i < client_count; i++){
+        thrd_join(client_threads[i], NULL);
+    }
+    #endif
+    
     close(server_fd);
 
     // Clean up memory
@@ -95,7 +130,11 @@ int main(int argc, char *argv[]){
     return EXIT_SUCCESS;
 }
 
+#if defined(__APPLE__) && defined(__MACH__)
 void* connection_listen(void* arg){
+#else
+int connection_listen(void* arg){
+#endif
     while(1){
         // Wait for a connection attempt
         int new_socket;
@@ -117,24 +156,49 @@ void* connection_listen(void* arg){
         new_user->next = NULL;
         new_user->socket = new_socket;
 
-        // Mutual exclusion, only one thread can modify the hash table at a time  
+        #if defined(__APPLE__) && defined(__MACH__)
         pthread_mutex_lock(&hash_mutex);
+        #else
+        // Mutual exclusion, only one thread can modify the hash table at a time  
+        mtx_lock(&hash_mutex);
+        #endif
+
+        
         
         put(new_user->username, new_user, users);
         client_count++;
 
+        #if defined(__APPLE__) && defined(__MACH__)
         // Create a new thread for listening to that client's messages
         pthread_t client_thread;
         pthread_create(&client_thread, NULL, client_listen, new_user);
 
         pthread_mutex_unlock(&hash_mutex);
+        #else
+        // Create a new thread for listening to that client's messages
+        thrd_t client_thread;
+        thrd_create(&client_thread, client_listen, new_user);
+
+        mtx_unlock(&hash_mutex);
+        #endif
+
+        
     }
 
+    #if defined(__APPLE__) && defined(__MACH__)
     pthread_exit(NULL);
     return NULL;
+    #else
+    thrd_exit(EXIT_SUCCESS);
+    return EXIT_SUCCESS;
+    #endif
 }
 
+#if defined(__APPLE__) && defined(__MACH__)
 void* client_listen(void* arg){
+#else
+int client_listen(void* arg){
+#endif
     // Get user struct and username from passed in arg
     struct User* user = (struct User*)arg;
     char* client_id = user->username;
@@ -157,10 +221,17 @@ void* client_listen(void* arg){
         char final[USERNAME_LEN+MESSAGE_LEN];
         snprintf(final, sizeof(final), "%s: %s", user->username, msgBuffer);
 
-        // Lock the printing mutex before printing the message
+        #if defined(__APPLE__) && defined(__MACH__)
         pthread_mutex_lock(&print_mutex);
         printf("%s", final);
         pthread_mutex_unlock(&print_mutex);
+        #else
+        // Lock the printing mutex before printing the message
+        mtx_lock(&print_mutex);
+        printf("%s", final);
+        mtx_unlock(&print_mutex);
+        #endif
+        
 
         // Check if the message is a valid command
         if(strcmp(msgBuffer, "/EXIT\n") == 0){ // Client Disconnect Command
@@ -197,12 +268,21 @@ void* client_listen(void* arg){
 
     // If the loop has exited, the client has disconnected
     // Lock the hash mutex and delete the user
+    #if defined(__APPLE__) && defined(__MACH__)
     pthread_mutex_lock(&hash_mutex);
     delete(client_id, users);
     pthread_mutex_unlock(&hash_mutex);
 
     pthread_exit(NULL);
     return NULL;
+    #else
+    mtx_lock(&hash_mutex);
+    delete(client_id, users);
+    mtx_unlock(&hash_mutex);
+
+    thrd_exit(EXIT_SUCCESS);
+    return EXIT_SUCCESS;
+    #endif
 }
 
 void send_to_all(char* sender_id, char* msg, size_t size){
