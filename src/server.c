@@ -41,12 +41,6 @@ mtx_t print_mutex;
 mtx_t hash_mutex;
 #endif
 
-#if defined(__APPLE__) && defined(__MACH__)
-
-#else
-
-#endif
-
 int main(int argc, char *argv[]){
     
     #if !defined(__APPLE__) && !defined(__MACH__)
@@ -274,8 +268,6 @@ int client_listen(void* arg){
     // If the loop has exited, the client has disconnected
     // Lock the hash mutex and delete the user
     #if defined(__APPLE__) && defined(__MACH__)
-    // If the loop has exited, the client has disconnected
-    // Lock the hash mutex and delete the user
     pthread_mutex_lock(&hash_mutex);
     delete(client_id, users);
     pthread_mutex_unlock(&hash_mutex);
