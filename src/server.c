@@ -3,7 +3,6 @@
 #include "user.h"
 #include "hashmap.h"
 
-#include <asm-generic/socket.h>
 #include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>
