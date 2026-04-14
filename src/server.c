@@ -10,18 +10,34 @@
 #include <threads.h>
 #endif
 
+// Windows Sockets
+#if defined(_WIN32)
+#include <winsock2.h>
+#include <ws2tcpip.h>
+#include <ws2spi.h>
+#include <BaseTsd.h>
+#else // Posix sockets
+#include <unistd.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#endif
+
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <unistd.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
 
 // GLOBAL VARIABLES
 int running = 1;
 int opt = 1;
+
+#if defined(_WIN32)
+// Not a file descriptor but keeping the name the same for consistency
+SOCKET server_fd;
+#else
 int server_fd;
+#endif
 
 struct sockaddr_in address;
 socklen_t addrlen = sizeof(address);
@@ -44,8 +60,17 @@ mtx_t hash_mutex;
 
 int main(int argc, char *argv[]){
     
+    #if defined(_WIN32)
+    // WSADATA startup required for windows sockets
+    WSADATA wsa;
+    if (WSAStartup(MAKEWORD(2,2), &wsa) != 0) {
+        printf("WSAStartup failed\n");
+        return -1;
+    }
+    #endif
+
     #if !defined(__APPLE__) && !defined(__MACH__)
-    // Initialize Mutex
+    // Initialize Mutex, required for threads.h
     mtx_init(&print_mutex, mtx_plain);
     mtx_init(&hash_mutex, mtx_plain);
     #endif
@@ -64,6 +89,15 @@ int main(int argc, char *argv[]){
         printf("Socket initialized\n");
     }
 
+    #if defined(_WIN32)
+    // Set socket options
+    if((setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR, (const char*)&opt, sizeof(opt))) == SOCKET_ERROR){
+        printf("Failed to set socket options\n");
+        closesocket(server_fd);
+        WSACleanup();
+        exit(EXIT_FAILURE);
+    }
+    #else
     // Set socket options
     if((setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt))) < 0){
         perror("setsockopt");
@@ -73,20 +107,37 @@ int main(int argc, char *argv[]){
         perror("setsockopt");
         exit(EXIT_FAILURE);
     }
+    #endif
+
+    
     address.sin_family = AF_INET;
     address.sin_addr.s_addr = INADDR_ANY;
     address.sin_port = htons(PORT);
 
     // Bind socket to port
     if(bind(server_fd, (struct sockaddr*)&address, addrlen) < 0){
+        #if defined(_WIN32)
+        printf("Failed to bind port");
+        closesocket(server_fd);
+        WSACleanup();
+        exit(EXIT_FAILURE);
+        #else
         perror("Failed to bind");
         exit(EXIT_FAILURE);
+        #endif
     }
 
     // Start listening on socket
     if(listen(server_fd, 3) < 0){
+        #if defined(_WIN32)
+        printf("Failed to listen");
+        closesocket(server_fd);
+        WSACleanup();
+        exit(EXIT_FAILURE);
+        #else
         perror("listen");
         exit(EXIT_FAILURE);
+        #endif
     }
 
     #if defined(__APPLE__) && defined(__MACH__)
@@ -114,9 +165,13 @@ int main(int argc, char *argv[]){
         thrd_join(client_threads[i], NULL);
     }
     #endif
-    
-    close(server_fd);
 
+    #if defined(_WIN32) // Windows Socket Close
+    closesocket(server_fd);
+    #else // POSIX socket close
+    close(server_fd);
+    #endif
+    
     // Clean up memory
     // Free all usernames
     for(int i = 0; i < MAX_CLIENTS; i++){
@@ -126,6 +181,10 @@ int main(int argc, char *argv[]){
     }
     // Free the users array
     free(users);
+
+    #if defined(_WIN32)
+    WSACleanup();
+    #endif
 
     return EXIT_SUCCESS;
 }
@@ -137,22 +196,41 @@ int connection_listen(void* arg){
 #endif
     while(1){
         // Wait for a connection attempt
+        #if defined(_WIN32)
+        SOCKET new_socket;
+        addrlen = sizeof(address);
+        if((new_socket = accept(server_fd, (struct sockaddr*)&address, &addrlen)) == SOCKET_ERROR){
+            printf("Failed to connect\n");
+            exit(EXIT_FAILURE);
+        }
+        #else
         int new_socket;
         if((new_socket = accept(server_fd, (struct sockaddr*)&address, &addrlen)) < 0){
             perror("accept");
             exit(EXIT_FAILURE);
         }
-        
+        #endif
+
         // Get username from client
         char namebuf[USERNAME_LEN] = { 0 };
+        #if defined(_WIN32)
+        int valread = recv(new_socket, namebuf, USERNAME_LEN, 0);
+        #else
         ssize_t valread = read(new_socket, namebuf, USERNAME_LEN);
+        #endif
+
         namebuf[USERNAME_LEN-1] = '\0';
         printf("%s joined the chat\n", namebuf);
 
         // Create User struct
         struct User* new_user = malloc(sizeof(struct User));
         new_user->username = malloc(sizeof(char) * USERNAME_LEN);
+        #if defined(_WIN32)
+        strcpy_s(new_user->username, USERNAME_LEN, namebuf);
+        #else
         strcpy(new_user->username, namebuf);
+        #endif
+
         new_user->next = NULL;
         new_user->socket = new_socket;
 
@@ -214,7 +292,12 @@ int client_listen(void* arg){
     while(client_running){
 
         // Read incoming message
+        #if defined(_WIN32)
+        int valread = recv(user->socket, msgBuffer, MESSAGE_LEN, 0);
+        #else
         ssize_t valread = read(user->socket, msgBuffer, MESSAGE_LEN);
+        #endif
+
         msgBuffer[MESSAGE_LEN-1] = '\0';
 
         // Combine Username: Message
@@ -241,22 +324,35 @@ int client_listen(void* arg){
             send_to_all(client_id, msg, sizeof(char) * (USERNAME_LEN + MESSAGE_LEN));
         }else if(strcmp(msgBuffer, "/list\n") == 0){ // List active users
             char user_list[USERNAME_LEN + MESSAGE_LEN] = { 0 };
+            #if defined(_WIN32)
+            strcat_s(user_list, sizeof(user_list), "Connected Users: ");
+            #else
             strcat(user_list, "Connected Users: ");
+            #endif
 
             for(int i = 0; i < MAX_CLIENTS; i++){
                 if(users[i] != NULL){
                     struct User* curr = users[i];
                     while(curr != NULL){
                         if(strcmp(curr->username, user->username) != 0){
+                            #if defined(_WIN32)
+                            strcat_s(user_list, sizeof(user_list), curr->username);
+                            strcat_s(user_list, sizeof(user_list), ", ");
+                            #else
                             strcat(user_list, curr->username);
                             strcat(user_list, ", ");
+                            #endif
                         }
                         curr = curr->next;
                     }
                 }
             }
 
+            #if defined(_WIN32)
+            strcat_s(user_list, sizeof(user_list), "\n");
+            #else
             strcat(user_list, "\n");
+            #endif
 
             send_to_ID(client_id, user_list, sizeof(char) * (USERNAME_LEN + MESSAGE_LEN));
         }
@@ -277,6 +373,13 @@ int client_listen(void* arg){
     return NULL;
     #else
     mtx_lock(&hash_mutex);
+
+    #if defined(_WIN32)
+    closesocket(user->socket);
+    #else
+    close(user->socket);
+    #endif
+
     delete(client_id, users);
     mtx_unlock(&hash_mutex);
 
@@ -291,7 +394,11 @@ void send_to_all(char* sender_id, char* msg, size_t size){
             struct User* curr = users[i];
             while(curr != NULL){
                 if(strcmp(curr->username, sender_id) != 0){
+                    #if defined(_WIN32)
+                    send(curr->socket, msg, (int)size, 0);
+                    #else
                     send(curr->socket, msg, size, 0);
+                    #endif
                 }
                 curr = curr->next;
             }
@@ -301,5 +408,9 @@ void send_to_all(char* sender_id, char* msg, size_t size){
 
 void send_to_ID(char* client_id, char* msg, size_t size){
     struct User* target = get(client_id, users);
+    #if defined(_WIN32)
+    send(target->socket, msg, (int)size, 0);
+    #else
     send(target->socket, msg, size, 0);
+    #endif
 }
