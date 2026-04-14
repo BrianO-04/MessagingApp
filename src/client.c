@@ -7,21 +7,47 @@
 #include <threads.h>
 #endif
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+// Windows Sockets
+#if defined(_WIN32)
+#include <winsock2.h>
+#include <ws2tcpip.h>
+#include <ws2spi.h>
+#include <BaseTsd.h>
+#else // Posix sockets
 #include <unistd.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
+#endif
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
 
 // GLOBAL VARIABLES
+#if defined(_WIN32)
+// Not a file descriptor but keeping the name the same for consistency
+SOCKET client_fd;
+#else
 int client_fd;
+#endif
+
 int status;
 int client_active = 1;
 struct sockaddr_in server_addr;
 
 int main(int argc, char *argv[]){
+
+    #if defined(_WIN32)
+    // WSADATA startup required for windows sockets
+    WSADATA wsa;
+    if (WSAStartup(MAKEWORD(2,2), &wsa) != 0) {
+        printf("WSAStartup failed\n");
+        return -1;
+    }
+    #endif
+
     char buffer[1024] = { 0 };
 
     if(argc != 3){
@@ -32,10 +58,20 @@ int main(int argc, char *argv[]){
     char* uname = argv[1];
     char* ip = argv[2];
 
+    #if defined(_WIN32) //Windows socket setup and error reporting
+    if((client_fd = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP)) == INVALID_SOCKET){
+        printf("Failed to create socket\n");
+        WSACleanup();
+        return -1;
+    }
+    #else // POSIX systems
     if((client_fd = socket(AF_INET, SOCK_STREAM, 0)) < 0){
         perror("Failed to create socket");
         return -1;
     }
+    #endif
+
+    
     server_addr.sin_family = AF_INET;
     server_addr.sin_port = htons(PORT);
 
@@ -77,8 +113,12 @@ int main(int argc, char *argv[]){
     // Probably need to figure this out later but that thread doesn't want to exit
     // thrd_join(messaging_thread, NULL);
 
-
+    #if defined(_WIN32) // Windows Socket Close
+    closesocket(client_fd);
+    #else // POSIX socket close
     close(client_fd);
+    #endif
+    
     return 0;
 }
 
@@ -91,7 +131,12 @@ int server_listen(void* arg){
     char buffer[1024] = { 0 };
 
     while(client_active){
+        #if defined(_WIN32)
+        SSIZE_T valread = recv(client_fd, buffer, USERNAME_LEN+MESSAGE_LEN, 0);
+        #else
         ssize_t valread = read(client_fd, buffer, USERNAME_LEN+MESSAGE_LEN);
+        #endif
+
         buffer[USERNAME_LEN+MESSAGE_LEN-1] = '\0';
         printf("%s", buffer);
     }

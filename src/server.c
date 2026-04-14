@@ -10,13 +10,23 @@
 #include <threads.h>
 #endif
 
+// Windows Sockets
+#if defined(_WIN32)
+#include <winsock2.h>
+#include <ws2tcpip.h>
+#include <ws2spi.h>
+#include <BaseTsd.h>
+#else // Posix sockets
+#include <unistd.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#endif
+
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <unistd.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
 
 // GLOBAL VARIABLES
 int running = 1;
@@ -45,7 +55,7 @@ mtx_t hash_mutex;
 int main(int argc, char *argv[]){
     
     #if !defined(__APPLE__) && !defined(__MACH__)
-    // Initialize Mutex
+    // Initialize Mutex, required for threads.h
     mtx_init(&print_mutex, mtx_plain);
     mtx_init(&hash_mutex, mtx_plain);
     #endif
