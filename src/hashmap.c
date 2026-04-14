@@ -4,7 +4,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
+// Windows Sockets
+#if !defined(_WIN32)
 #include <unistd.h>
+#endif
 
 // Polynomial Rolling Hash Function
 int hash(char* key){

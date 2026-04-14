@@ -13,4 +13,7 @@ add_executable(MessagingServer
     src/hashmap.c
     src/server.c)
 
-
+if(WIN32)
+    target_link_libraries(MessagingApp ws2_32)
+    target_link_libraries(MessagingServer ws2_32)
+endif()
