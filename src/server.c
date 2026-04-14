@@ -298,6 +298,11 @@ int client_listen(void* arg){
         ssize_t valread = read(user->socket, msgBuffer, MESSAGE_LEN);
         #endif
 
+        if(valread <= 0){ // Disconnect
+            client_running = 0;
+            break;
+        }
+
         msgBuffer[MESSAGE_LEN-1] = '\0';
 
         // Combine Username: Message
