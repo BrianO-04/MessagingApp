@@ -300,6 +300,10 @@ int client_listen(void* arg){
 
         if(valread <= 0){ // Disconnect
             client_running = 0;
+            char msg[USERNAME_LEN + MESSAGE_LEN];
+            snprintf(msg, sizeof(msg), "%s has disconnected\n", user->username);
+            printf("%s", msg);
+            send_to_all(client_id, msg, sizeof(char) * (USERNAME_LEN + MESSAGE_LEN));
             break;
         }
 
@@ -326,6 +330,7 @@ int client_listen(void* arg){
             client_running = 0;
             char msg[USERNAME_LEN + MESSAGE_LEN];
             snprintf(msg, sizeof(msg), "%s has disconnected\n", user->username);
+            printf("%s", msg);
             send_to_all(client_id, msg, sizeof(char) * (USERNAME_LEN + MESSAGE_LEN));
         }else if(strcmp(msgBuffer, "/list\n") == 0){ // List active users
             char user_list[USERNAME_LEN + MESSAGE_LEN] = { 0 };
