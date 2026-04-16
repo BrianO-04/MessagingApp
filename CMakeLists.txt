@@ -9,6 +9,8 @@ include_directories(src)
 
 add_executable(MessagingApp src/client.c)
 
+add_executable(MessagingClient src/ctui.c)
+
 add_executable(MessagingServer 
     src/hashmap.c
     src/server.c)
