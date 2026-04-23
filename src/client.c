@@ -128,13 +128,14 @@ void* server_listen(void* arg){
 #else
 int server_listen(void* arg){
 #endif
-    char buffer[1024] = { 0 };
+    
 
     while(client_active){
+        char buffer[1024] = { 0 };
         #if defined(_WIN32)
-        SSIZE_T valread = recv(client_fd, buffer, USERNAME_LEN+MESSAGE_LEN, 0);
+        SSIZE_T valread = recv(client_fd, buffer, 1024, 0);
         #else
-        ssize_t valread = read(client_fd, buffer, USERNAME_LEN+MESSAGE_LEN);
+        ssize_t valread = read(client_fd, buffer, 1024);
         #endif
 
         buffer[USERNAME_LEN+MESSAGE_LEN-1] = '\0';
