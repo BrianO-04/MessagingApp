@@ -58,6 +58,10 @@ mtx_t print_mutex;
 mtx_t hash_mutex;
 #endif
 
+// Message Log
+int head = 0;
+char msgLog[MAXLOG][MESSAGE_LEN+USERNAME_LEN];
+
 int main(int argc, char *argv[]){
     
     #if defined(_WIN32)
@@ -302,7 +306,8 @@ int client_listen(void* arg){
             client_running = 0;
             char msg[USERNAME_LEN + MESSAGE_LEN];
             snprintf(msg, sizeof(msg), "%s has disconnected\n", user->username);
-            printf("%s", msg);
+            //printf("%s", msg);
+            print_msg(msg);
             send_to_all(client_id, msg, sizeof(char) * (USERNAME_LEN + MESSAGE_LEN));
             break;
         }
@@ -313,14 +318,20 @@ int client_listen(void* arg){
         char final[USERNAME_LEN+MESSAGE_LEN];
         snprintf(final, sizeof(final), "%s: %s", user->username, msgBuffer);
 
+        // Lock Mutex
         #if defined(__APPLE__) && defined(__MACH__)
         pthread_mutex_lock(&print_mutex);
-        printf("%s", final);
+        #else
+        mtx_lock(&print_mutex);
+        #endif
+
+        //printf("%s", final);
+        print_msg(final);
+        
+        // Unlock Mutex
+        #if defined(__APPLE__) && defined(__MACH__)
         pthread_mutex_unlock(&print_mutex);
         #else
-        // Lock the printing mutex before printing the message
-        mtx_lock(&print_mutex);
-        printf("%s", final);
         mtx_unlock(&print_mutex);
         #endif
         
@@ -330,7 +341,7 @@ int client_listen(void* arg){
             client_running = 0;
             char msg[USERNAME_LEN + MESSAGE_LEN];
             snprintf(msg, sizeof(msg), "%s has disconnected\n", user->username);
-            printf("%s", msg);
+            print_msg(msg);
             send_to_all(client_id, msg, sizeof(char) * (USERNAME_LEN + MESSAGE_LEN));
         }else if(strcmp(msgBuffer, "/list\n") == 0){ // List active users
             char user_list[USERNAME_LEN + MESSAGE_LEN] = { 0 };
@@ -365,6 +376,8 @@ int client_listen(void* arg){
             #endif
 
             send_to_ID(client_id, user_list, sizeof(char) * (USERNAME_LEN + MESSAGE_LEN));
+        }else if(strcmp(msgBuffer, "/logtest\n") == 0){
+            print_log();
         }
         else{ // Normal message, send to all users
             send_to_all(client_id, final, sizeof(char) * (USERNAME_LEN + MESSAGE_LEN));
@@ -415,4 +428,19 @@ void send_to_all(char* sender_id, char* msg, size_t size){
 void send_to_ID(char* client_id, char* msg, size_t size){
     struct User* target = get(client_id, users);
     send(target->socket, msg, strlen(msg), 0);
+}
+
+void print_msg(char* msg){
+    printf("%s", msg);
+    strcpy(msgLog[head], msg);
+    head = (head+1) % MAXLOG;
+}
+
+void print_log(){
+    printf("PRINTING LOG\n");
+    for(int i = 0; i < MAXLOG; i++){
+        int j = (i + head) % MAXLOG;
+        printf("%s\n", msgLog[j]);
+    }
+    printf("LOG PRINTED\n");
 }
