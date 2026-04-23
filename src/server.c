@@ -404,11 +404,7 @@ void send_to_all(char* sender_id, char* msg, size_t size){
             struct User* curr = users[i];
             while(curr != NULL){
                 if(strcmp(curr->username, sender_id) != 0){
-                    #if defined(_WIN32)
-                    send(curr->socket, msg, (int)size, 0);
-                    #else
-                    send(curr->socket, msg, size, 0);
-                    #endif
+                    send(curr->socket, msg, strlen(msg), 0);
                 }
                 curr = curr->next;
             }
@@ -418,9 +414,5 @@ void send_to_all(char* sender_id, char* msg, size_t size){
 
 void send_to_ID(char* client_id, char* msg, size_t size){
     struct User* target = get(client_id, users);
-    #if defined(_WIN32)
-    send(target->socket, msg, (int)size, 0);
-    #else
-    send(target->socket, msg, size, 0);
-    #endif
+    send(target->socket, msg, strlen(msg), 0);
 }
