@@ -32,12 +32,7 @@
 int running = 1;
 int opt = 1;
 
-#if defined(_WIN32)
-// Not a file descriptor but keeping the name the same for consistency
 SOCKET server_fd;
-#else
-int server_fd;
-#endif
 
 struct sockaddr_in address;
 socklen_t addrlen = sizeof(address);
@@ -170,11 +165,7 @@ int main(int argc, char *argv[]){
     }
     #endif
 
-    #if defined(_WIN32) // Windows Socket Close
     closesocket(server_fd);
-    #else // POSIX socket close
-    close(server_fd);
-    #endif
     
     // Clean up memory
     // Free all usernames
@@ -193,11 +184,7 @@ int main(int argc, char *argv[]){
     return EXIT_SUCCESS;
 }
 
-#if defined(__APPLE__) && defined(__MACH__)
-void* connection_listen(void* arg){
-#else
-int connection_listen(void* arg){
-#endif
+THRDFUNC connection_listen(void* arg){
     while(1){
         // Wait for a connection attempt
         #if defined(_WIN32)
@@ -267,20 +254,11 @@ int connection_listen(void* arg){
         
     }
 
-    #if defined(__APPLE__) && defined(__MACH__)
-    pthread_exit(NULL);
-    return NULL;
-    #else
-    thrd_exit(EXIT_SUCCESS);
-    return EXIT_SUCCESS;
-    #endif
+    thrd_exit(THRDEXIT);
+    return THRDEXIT;
 }
 
-#if defined(__APPLE__) && defined(__MACH__)
-void* client_listen(void* arg){
-#else
-int client_listen(void* arg){
-#endif
+THRDFUNC client_listen(void* arg){
     // Get user struct and username from passed in arg
     struct User* user = (struct User*)arg;
     char* client_id = user->username;
@@ -296,11 +274,7 @@ int client_listen(void* arg){
     while(client_running){
 
         // Read incoming message
-        #if defined(_WIN32)
-        int valread = recv(user->socket, msgBuffer, MESSAGE_LEN, 0);
-        #else
-        ssize_t valread = read(user->socket, msgBuffer, MESSAGE_LEN);
-        #endif
+        int valread = read_mp(user->socket, msgBuffer, MESSAGE_LEN);
 
         if(valread <= 0){ // Disconnect
             client_running = 0;
@@ -318,23 +292,12 @@ int client_listen(void* arg){
         char final[USERNAME_LEN+MESSAGE_LEN];
         snprintf(final, sizeof(final), "%s: %s", user->username, msgBuffer);
 
-        // Lock Mutex
-        #if defined(__APPLE__) && defined(__MACH__)
-        pthread_mutex_lock(&print_mutex);
-        #else
         mtx_lock(&print_mutex);
-        #endif
 
         //printf("%s", final);
         print_msg(final);
         
-        // Unlock Mutex
-        #if defined(__APPLE__) && defined(__MACH__)
-        pthread_mutex_unlock(&print_mutex);
-        #else
         mtx_unlock(&print_mutex);
-        #endif
-        
 
         // Check if the message is a valid command
         if(strcmp(msgBuffer, "/EXIT\n") == 0){ // Client Disconnect Command
@@ -385,30 +348,15 @@ int client_listen(void* arg){
         
     }
 
-    // If the loop has exited, the client has disconnected
-    // Lock the hash mutex and delete the user
-    #if defined(__APPLE__) && defined(__MACH__)
-    pthread_mutex_lock(&hash_mutex);
-    delete(client_id, users);
-    pthread_mutex_unlock(&hash_mutex);
-
-    pthread_exit(NULL);
-    return NULL;
-    #else
     mtx_lock(&hash_mutex);
 
-    #if defined(_WIN32)
     closesocket(user->socket);
-    #else
-    close(user->socket);
-    #endif
-
     delete(client_id, users);
+
     mtx_unlock(&hash_mutex);
 
-    thrd_exit(EXIT_SUCCESS);
-    return EXIT_SUCCESS;
-    #endif
+    thrd_exit(THRDEXIT);
+    return THRDEXIT;
 }
 
 void send_to_all(char* sender_id, char* msg, size_t size){
