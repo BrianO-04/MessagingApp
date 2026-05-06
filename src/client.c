@@ -1,37 +1,12 @@
 #include "client.h"
-
-// MacOS does not support threads.h so use pthread.h instead
-#if defined(__APPLE__) && defined(__MACH__)
-#include <pthread.h>
-#else
-#include <threads.h>
-#endif
-
-// Windows Sockets
-#if defined(_WIN32)
-#include <winsock2.h>
-#include <ws2tcpip.h>
-#include <ws2spi.h>
-#include <BaseTsd.h>
-#else // Posix sockets
-#include <unistd.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-#endif
-
+#include "macros.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
 
 // GLOBAL VARIABLES
-#if defined(_WIN32)
-// Not a file descriptor but keeping the name the same for consistency
 SOCKET client_fd;
-#else
-int client_fd;
-#endif
 
 int status;
 int client_active = 1;
@@ -90,14 +65,8 @@ int main(int argc, char *argv[]){
     send(client_fd, &join_cmd, sizeof(cmd_types), 0);
     send(client_fd, uname, sizeof(char) * USERNAME_LEN, 0);
 
-    #if defined(__APPLE__) && defined(__MACH__)
-    pthread_t messaging_thread;
-    pthread_create(&messaging_thread, NULL, server_listen, NULL);
-    #else
     thrd_t messaging_thread;
     thrd_create(&messaging_thread, server_listen, NULL);
-    #endif
-
     
 
     while(client_active){
@@ -115,39 +84,18 @@ int main(int argc, char *argv[]){
     // Probably need to figure this out later but that thread doesn't want to exit
     // thrd_join(messaging_thread, NULL);
 
-    #if defined(_WIN32) // Windows Socket Close
     closesocket(client_fd);
-    #else // POSIX socket close
-    close(client_fd);
-    #endif
     
     return 0;
 }
 
-
-#if defined(__APPLE__) && defined(__MACH__)
-void* server_listen(void* arg){
-#else
-int server_listen(void* arg){
-#endif
-    
-
+THRDFUNC server_listen(void* arg){
     while(client_active){
         char buffer[1024] = { 0 };
-        #if defined(_WIN32)
-        SSIZE_T valread = recv(client_fd, buffer, 1024, 0);
-        #else
-        ssize_t valread = read(client_fd, buffer, 1024);
-        #endif
-
+        int valread = read_mp(client_fd, buffer, 1024);
         buffer[USERNAME_LEN+MESSAGE_LEN-1] = '\0';
         printf("%s", buffer);
     }
-    #if defined(__APPLE__) && defined(__MACH__)
-    pthread_exit(NULL);
-    return NULL;
-    #else
-    thrd_exit(EXIT_SUCCESS);
-    return EXIT_SUCCESS;
-    #endif
+    thrd_exit(THRDEXIT);
+    return THRDEXIT;
 }
