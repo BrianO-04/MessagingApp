@@ -86,6 +86,8 @@ int main(int argc, char *argv[]){
         printf("Connection failed");
         return -1;
     }
+    cmd_types join_cmd = JOIN;
+    send(client_fd, &join_cmd, sizeof(cmd_types), 0);
     send(client_fd, uname, sizeof(char) * USERNAME_LEN, 0);
 
     #if defined(__APPLE__) && defined(__MACH__)
