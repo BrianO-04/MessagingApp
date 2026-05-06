@@ -7,9 +7,12 @@ set(CMAKE_C_STANDARD_REQUIRED ON)
 include_directories(include)
 include_directories(src)
 
-add_executable(MessagingApp src/client.c)
+add_executable(MessagingApp 
+    src/macros.c
+    src/client.c)
 
 add_executable(MessagingServer 
+    src/macros.c
     src/hashmap.c
     src/server.c)
 
