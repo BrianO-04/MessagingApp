@@ -54,6 +54,9 @@ int read_mp(int fd, void* buf, size_t nbytes);
 #define THRDEXIT NULL
 #define thrd_exit pthread_exit
 
+#define mtx_unlock pthread_mutex_unlock
+#define mtx_lock pthread_mutex_lock
+
 #define thrd_t pthread_t
 
 int thrd_create(thrd_t* thr, void *(*start_routine)(void*), void *arg);
