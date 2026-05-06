@@ -52,6 +52,7 @@ int read_mp(int fd, void* buf, size_t nbytes);
 #if defined(__APPLE__) && defined(__MACH__)
 #define THRDFUNC void*
 #define THRDEXIT NULL
+#define THRDFAIL (void*)-1
 #define thrd_exit pthread_exit
 
 #define mtx_unlock pthread_mutex_unlock
@@ -65,6 +66,7 @@ int thrd_create(thrd_t* thr, void *(*start_routine)(void*), void *arg);
 #else
 #define THRDFUNC int
 #define THRDEXIT 0
+#define THRDFAIL -1
 #endif
 
 #endif // MACROS_H_

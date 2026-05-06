@@ -205,7 +205,7 @@ THRDFUNC connection_listen(void* arg){
         // Get username from client
         cmd_types joincmd = EMPTY;
         int valread = read_mp(new_socket, &joincmd, sizeof(cmd_types));
-        if(joincmd != JOIN) return -1;
+        if(joincmd != JOIN) return THRDFAIL;
 
         char namebuf[USERNAME_LEN] = { 0 };
         valread = read_mp(new_socket, namebuf, USERNAME_LEN);
