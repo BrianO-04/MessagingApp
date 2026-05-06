@@ -16,7 +16,7 @@ int read_mp(int fd, void* buf, size_t nbytes){
 #if defined(__APPLE__) && defined(__MACH__)
 
 int thrd_create(thrd_t* thr, void *(*start_routine)(void*), void *arg){
-    pthread_create(thr, NULL, start_routine, arg);
+    return pthread_create(thr, NULL, start_routine, arg);
 }
 
 #endif
