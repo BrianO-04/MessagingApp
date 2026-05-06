@@ -203,12 +203,13 @@ THRDFUNC connection_listen(void* arg){
         #endif
 
         // Get username from client
+        cmd_types joincmd = EMPTY;
+        int valread = read_mp(new_socket, &joincmd, sizeof(cmd_types));
+        if(joincmd != JOIN) return -1;
+
         char namebuf[USERNAME_LEN] = { 0 };
-        #if defined(_WIN32)
-        int valread = recv(new_socket, namebuf, USERNAME_LEN, 0);
-        #else
-        ssize_t valread = read(new_socket, namebuf, USERNAME_LEN);
-        #endif
+        valread = read_mp(new_socket, namebuf, USERNAME_LEN);
+
 
         namebuf[USERNAME_LEN-1] = '\0';
         printf("%s joined the chat\n", namebuf);
