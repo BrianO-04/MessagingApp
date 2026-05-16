@@ -65,19 +65,30 @@ int main(int argc, char *argv[]){
     send(client_fd, &join_cmd, sizeof(cmd_types), 0);
     send(client_fd, uname, sizeof(char) * USERNAME_LEN, 0);
 
+    cmd_types join_conf = EMPTY;
+    int valread = read_mp(client_fd, &join_conf, sizeof(join_conf));
+    if(join_conf != USR_CONF){
+        client_active = 0;
+        printf("Kicked from server!\n");
+    }
+
+
     thrd_t messaging_thread;
     thrd_create(&messaging_thread, server_listen, NULL);
-    
 
     while(client_active){
         char message[MESSAGE_LEN];
         fgets(message, sizeof(message), stdin);
 
-        //Send message
-        send(client_fd, message, sizeof(char) * MESSAGE_LEN, 0);
-
         if(strcmp(message, "/EXIT\n") == 0){ // Disconnect Command
+            cmd_types ext_cmd = USR_EXIT;
+            send(client_fd, &ext_cmd, sizeof(cmd_types), 0);
             client_active = 0;
+        }else {
+            //Send message
+            cmd_types msg_cmd = MESSAGE;
+            send(client_fd, &msg_cmd, sizeof(cmd_types), 0);
+            send(client_fd, message, sizeof(char) * MESSAGE_LEN, 0);
         }
     }
 
