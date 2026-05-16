@@ -32,7 +32,10 @@ typedef enum{
     EMPTY,
     MESSAGE,
     JOIN,
-    LIST
+    LIST,
+    USR_EXIT,
+    USR_KICK,
+    USR_CONF
 } cmd_types;
 
 // Multiplatform socket reading
