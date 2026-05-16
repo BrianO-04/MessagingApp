@@ -209,9 +209,16 @@ THRDFUNC connection_listen(void* arg){
 
         char namebuf[USERNAME_LEN] = { 0 };
         valread = read_mp(new_socket, namebuf, USERNAME_LEN);
-
-
         namebuf[USERNAME_LEN-1] = '\0';
+
+        if(get(namebuf, users) != NULL){
+            closesocket(new_socket);
+            continue;
+        }
+
+        cmd_types confirm = USR_CONF;
+        send(new_socket, &confirm, sizeof(cmd_types), 0);
+
         printf("%s joined the chat\n", namebuf);
 
         // Create User struct
@@ -268,16 +275,19 @@ THRDFUNC client_listen(void* arg){
     char joinMSG[USERNAME_LEN + MESSAGE_LEN];
     snprintf(joinMSG, sizeof(joinMSG), "%s joined the chat\n", client_id);
     send_to_all(client_id, joinMSG, sizeof(char) * (USERNAME_LEN + MESSAGE_LEN));
+    print_msg(joinMSG);
+
+    print_log(user->socket);
 
     // Start listening loop
     char msgBuffer[1024] = { 0 };
     int client_running = 1;
     while(client_running){
 
-        // Read incoming message
-        int valread = read_mp(user->socket, msgBuffer, MESSAGE_LEN);
+        cmd_types incomming_type = EMPTY;
+        int valread = read_mp(user->socket, &incomming_type, sizeof(cmd_types));
 
-        if(valread <= 0){ // Disconnect
+        if(valread <= 0 || incomming_type == USR_EXIT){ // Disconnect
             client_running = 0;
             char msg[USERNAME_LEN + MESSAGE_LEN];
             snprintf(msg, sizeof(msg), "%s has disconnected\n", user->username);
@@ -286,6 +296,9 @@ THRDFUNC client_listen(void* arg){
             send_to_all(client_id, msg, sizeof(char) * (USERNAME_LEN + MESSAGE_LEN));
             break;
         }
+
+        // Read incoming message
+        valread = read_mp(user->socket, msgBuffer, MESSAGE_LEN);
 
         msgBuffer[MESSAGE_LEN-1] = '\0';
 
@@ -340,10 +353,7 @@ THRDFUNC client_listen(void* arg){
             #endif
 
             send_to_ID(client_id, user_list, sizeof(char) * (USERNAME_LEN + MESSAGE_LEN));
-        }else if(strcmp(msgBuffer, "/logtest\n") == 0){
-            print_log();
-        }
-        else{ // Normal message, send to all users
+        }else{ // Normal message, send to all users
             send_to_all(client_id, final, sizeof(char) * (USERNAME_LEN + MESSAGE_LEN));
         }
         
@@ -385,11 +395,9 @@ void print_msg(char* msg){
     head = (head+1) % MAXLOG;
 }
 
-void print_log(){
-    printf("PRINTING LOG\n");
+void print_log(int client){
     for(int i = 0; i < MAXLOG; i++){
         int j = (i + head) % MAXLOG;
-        printf("%s\n", msgLog[j]);
+        send(client, msgLog[j], strlen(msgLog[j]), 0);
     }
-    printf("LOG PRINTED\n");
 }

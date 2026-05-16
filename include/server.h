@@ -26,6 +26,6 @@ void send_to_all(char* sender_id, char* msg, size_t size);
 void send_to_ID(char* client_id, char* msg, size_t size);
 
 void print_msg(char* msg);
-void print_log();
+void print_log(int client);
 
 #endif
