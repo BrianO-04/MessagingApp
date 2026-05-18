@@ -2,28 +2,6 @@
 #include "macros.h"
 #include "user.h"
 #include "hashmap.h"
-
-// MacOS does not support threads.h so use pthread.h instead
-#if defined(__APPLE__) && defined(__MACH__)
-#include <pthread.h>
-#else
-#include <threads.h>
-#endif
-
-// Windows Sockets
-#if defined(_WIN32)
-#include <winsock2.h>
-#include <ws2tcpip.h>
-#include <ws2spi.h>
-#include <BaseTsd.h>
-#else // Posix sockets
-#include <unistd.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-#endif
-
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
