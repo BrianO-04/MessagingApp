@@ -1,5 +1,7 @@
 #include "client.h"
+#include "aes.h"
 #include "macros.h"
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -12,6 +14,10 @@ int status;
 int client_active = 1;
 struct sockaddr_in server_addr;
 
+struct AES_ctx aes_ctx;
+uint8_t aes_key[16] = { 0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF };
+
+
 int main(int argc, char *argv[]){
 
     #if defined(_WIN32)
@@ -22,6 +28,9 @@ int main(int argc, char *argv[]){
         return -1;
     }
     #endif
+
+    // TINY AES SETUP
+    AES_init_ctx(&aes_ctx, aes_key);
 
     char buffer[1024] = { 0 };
 
@@ -78,6 +87,7 @@ int main(int argc, char *argv[]){
 
     while(client_active){
         char message[MESSAGE_LEN];
+        memset(message, 0, MESSAGE_LEN);
         fgets(message, sizeof(message), stdin);
 
         if(strcmp(message, "/EXIT\n") == 0){ // Disconnect Command
@@ -88,6 +98,11 @@ int main(int argc, char *argv[]){
             //Send message
             cmd_types msg_cmd = MESSAGE;
             send(client_fd, &msg_cmd, sizeof(cmd_types), 0);
+
+            //Encrypt message
+            uint8_t iv[AES_BLOCKLEN] = { 0 };
+            AES_ctx_set_iv(&aes_ctx, iv);
+            AES_CBC_encrypt_buffer(&aes_ctx, (uint8_t*)message, MESSAGE_LEN);
             send(client_fd, message, sizeof(char) * MESSAGE_LEN, 0);
         }
     }
@@ -103,7 +118,13 @@ int main(int argc, char *argv[]){
 THRDFUNC server_listen(void* arg){
     while(client_active){
         char buffer[1024] = { 0 };
+        memset(buffer, 0, 1024);
         int valread = read_mp(client_fd, buffer, 1024);
+
+        uint8_t iv[AES_BLOCKLEN] = { 0 };
+        AES_ctx_set_iv(&aes_ctx, iv);
+        AES_CBC_decrypt_buffer(&aes_ctx, (uint8_t*)buffer, 1024);
+        
         buffer[USERNAME_LEN+MESSAGE_LEN-1] = '\0';
         printf("%s", buffer);
     }

@@ -2,9 +2,11 @@
 #include "macros.h"
 #include "user.h"
 #include "hashmap.h"
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "aes.h"
 
 // GLOBAL VARIABLES
 int running = 1;
@@ -35,6 +37,9 @@ mtx_t hash_mutex;
 int head = 0;
 char msgLog[MAXLOG][MESSAGE_LEN+USERNAME_LEN];
 
+struct AES_ctx aes_ctx;
+uint8_t aes_key[16] = { 0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF };
+
 int main(int argc, char *argv[]){
     
     #if defined(_WIN32)
@@ -45,6 +50,9 @@ int main(int argc, char *argv[]){
         return -1;
     }
     #endif
+
+    // TINY AES SETUP
+    AES_init_ctx(&aes_ctx, aes_key);
 
     #if !defined(__APPLE__) && !defined(__MACH__)
     // Initialize Mutex, required for threads.h
@@ -197,8 +205,6 @@ THRDFUNC connection_listen(void* arg){
         cmd_types confirm = USR_CONF;
         send(new_socket, &confirm, sizeof(cmd_types), 0);
 
-        printf("%s joined the chat\n", namebuf);
-
         // Create User struct
         struct User* new_user = malloc(sizeof(struct User));
         new_user->username = malloc(sizeof(char) * USERNAME_LEN);
@@ -252,8 +258,8 @@ THRDFUNC client_listen(void* arg){
     // Broadcast join message to all users
     char joinMSG[USERNAME_LEN + MESSAGE_LEN];
     snprintf(joinMSG, sizeof(joinMSG), "%s joined the chat\n", client_id);
-    send_to_all(client_id, joinMSG, sizeof(char) * (USERNAME_LEN + MESSAGE_LEN));
     print_msg(joinMSG);
+    send_to_all(client_id, joinMSG, sizeof(char) * (USERNAME_LEN + MESSAGE_LEN));
 
     print_log(user->socket);
 
@@ -261,6 +267,8 @@ THRDFUNC client_listen(void* arg){
     char msgBuffer[1024] = { 0 };
     int client_running = 1;
     while(client_running){
+
+        memset(msgBuffer, 0, 1024);
 
         cmd_types incomming_type = EMPTY;
         int valread = read_mp(user->socket, &incomming_type, sizeof(cmd_types));
@@ -277,6 +285,11 @@ THRDFUNC client_listen(void* arg){
 
         // Read incoming message
         valread = read_mp(user->socket, msgBuffer, MESSAGE_LEN);
+
+        // Decrypt message
+        uint8_t iv[AES_BLOCKLEN] = { 0 };
+        AES_ctx_set_iv(&aes_ctx, iv);
+        AES_CBC_decrypt_buffer(&aes_ctx, (uint8_t*)msgBuffer, MESSAGE_LEN);
 
         msgBuffer[MESSAGE_LEN-1] = '\0';
 
@@ -349,6 +362,10 @@ THRDFUNC client_listen(void* arg){
 }
 
 void send_to_all(char* sender_id, char* msg, size_t size){
+
+    // Encrypt message
+    //AES_CBC_encrypt_buffer(&aes_ctx, (uint8_t*)msg, strlen(msg));
+
     for(int i = 0; i < MAX_CLIENTS; i++){
         if(users[i] != NULL){
             struct User* curr = users[i];
@@ -369,6 +386,12 @@ void send_to_ID(char* client_id, char* msg, size_t size){
 
 void print_msg(char* msg){
     printf("%s", msg);
+    
+    // Encrypt message
+    uint8_t iv[AES_BLOCKLEN] = { 0 };
+    AES_ctx_set_iv(&aes_ctx, iv);
+    AES_CBC_encrypt_buffer(&aes_ctx, (uint8_t*)msg, MESSAGE_LEN);
+
     strcpy(msgLog[head], msg);
     head = (head+1) % MAXLOG;
 }
