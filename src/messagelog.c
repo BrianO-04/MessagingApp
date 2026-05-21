@@ -11,6 +11,7 @@ void init_log(struct log* log){
 
 struct message* add_log(struct log* log, char* msg){
     struct message* newMsg = malloc(sizeof(struct message));
+    memset(newMsg->msg, 0, USERNAME_LEN+MESSAGE_LEN);
     strcpy(newMsg->msg, msg);
     newMsg->next = NULL;
     newMsg->last = NULL;
