@@ -290,9 +290,9 @@ THRDFUNC client_listen(void* arg){
         valread = read_mp(user->socket, msgBuffer, MESSAGE_LEN);
 
         // Decrypt message
-        // uint8_t iv[AES_BLOCKLEN] = { 0 };
-        // AES_ctx_set_iv(&aes_ctx, iv);
-        // AES_CBC_decrypt_buffer(&aes_ctx, (uint8_t*)msgBuffer, MESSAGE_LEN);
+        uint8_t iv[AES_BLOCKLEN] = { 0 };
+        AES_ctx_set_iv(&aes_ctx, iv);
+        AES_CBC_decrypt_buffer(&aes_ctx, (uint8_t*)msgBuffer, MESSAGE_LEN);
 
         msgBuffer[MESSAGE_LEN-1] = '\0';
 
@@ -324,17 +324,20 @@ THRDFUNC client_listen(void* arg){
 
 void send_to_all(char* sender_id, char* msg, size_t size){
 
+    char cpy[USERNAME_LEN+MESSAGE_LEN];
+    strcpy(cpy, msg);
+
     // Encrypt message
-    // uint8_t iv[AES_BLOCKLEN] = { 0 };
-    // AES_ctx_set_iv(&aes_ctx, iv);
-    // AES_CBC_encrypt_buffer(&aes_ctx, (uint8_t*)msg, strlen(msg));
+    uint8_t iv[AES_BLOCKLEN] = { 0 };
+    AES_ctx_set_iv(&aes_ctx, iv);
+    AES_CBC_encrypt_buffer(&aes_ctx, (uint8_t*)cpy, USERNAME_LEN+MESSAGE_LEN);
 
     for(int i = 0; i < MAX_CLIENTS; i++){
         if(users[i] != NULL){
             struct User* curr = users[i];
             while(curr != NULL){
                 if(strcmp(curr->username, sender_id) != 0){
-                    send(curr->socket, msg, strlen(msg), 0);
+                    send(curr->socket, cpy, USERNAME_LEN+MESSAGE_LEN, 0);
                 }
                 curr = curr->next;
             }
@@ -355,9 +358,9 @@ void print_msg(char* msg){
     struct message* newmsg = add_log(message_log, msg);
 
     // Encrypt message
-    // uint8_t iv[AES_BLOCKLEN] = { 0 };
-    // AES_ctx_set_iv(&aes_ctx, iv);
-    // AES_CBC_encrypt_buffer(&aes_ctx, (uint8_t*)newmsg->msg, strlen(newmsg->msg));
+    uint8_t iv[AES_BLOCKLEN] = { 0 };
+    AES_ctx_set_iv(&aes_ctx, iv);
+    AES_CBC_encrypt_buffer(&aes_ctx, (uint8_t*)newmsg->msg, strlen(newmsg->msg));
 }
 
 void print_log(int client){
