@@ -117,9 +117,9 @@ int main(int argc, char *argv[]){
 
 THRDFUNC server_listen(void* arg){
     while(client_active){
-        char buffer[1024] = { 0 };
-        memset(buffer, 0, 1024);
-        int valread = read_mp(client_fd, buffer, 1024);
+        char buffer[MESSAGE_LEN+USERNAME_LEN] = { 0 };
+        memset(buffer, 0, MESSAGE_LEN+USERNAME_LEN);
+        int valread = read_mp(client_fd, buffer, MESSAGE_LEN+USERNAME_LEN);
 
         // uint8_t iv[AES_BLOCKLEN] = { 0 };
         // AES_ctx_set_iv(&aes_ctx, iv);
