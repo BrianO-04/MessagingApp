@@ -39,7 +39,5 @@ struct message* add_log(struct log* log, char* msg){
         free(head);
     }
 
-    printf("[DEBUG] Current log len: %d\n", log->loglen);
-
     return newMsg;
 }
