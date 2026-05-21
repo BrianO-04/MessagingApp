@@ -26,7 +26,6 @@
 #define MESSAGE_LEN 256
 #define USERNAME_LEN 16
 #define PORT 8080
-#define MAXLOG 30
 
 typedef enum{
     EMPTY,
