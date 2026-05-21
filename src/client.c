@@ -14,7 +14,6 @@ int status;
 int client_active = 1;
 struct sockaddr_in server_addr;
 
-struct AES_ctx aes_ctx;
 uint8_t aes_key[16] = { 't', 'e', 's', 't', 'i', 'n', 'g', '1', '2', '3', '4', '5', '6', '7', '8', '!' };
 
 
@@ -30,7 +29,9 @@ int main(int argc, char *argv[]){
     #endif
 
     // TINY AES SETUP
-    AES_init_ctx(&aes_ctx, aes_key);
+    struct AES_ctx aes_ctx;
+    uint8_t iv[AES_BLOCKLEN] = {0};
+    AES_init_ctx_iv(&aes_ctx, aes_key, iv);
 
     char buffer[1024] = { 0 };
 
@@ -99,10 +100,10 @@ int main(int argc, char *argv[]){
             cmd_types msg_cmd = MESSAGE;
             send(client_fd, &msg_cmd, sizeof(cmd_types), 0);
 
+            send(client_fd, aes_ctx.Iv, AES_BLOCKLEN, 0);
             //Encrypt message
-            uint8_t iv[AES_BLOCKLEN] = { 0 };
-            AES_ctx_set_iv(&aes_ctx, iv);
             AES_CBC_encrypt_buffer(&aes_ctx, (uint8_t*)message, MESSAGE_LEN);
+            
             send(client_fd, message, sizeof(char) * MESSAGE_LEN, 0);
         }
     }
@@ -116,12 +117,19 @@ int main(int argc, char *argv[]){
 }
 
 THRDFUNC server_listen(void* arg){
+    struct AES_ctx aes_ctx;
+    uint8_t iv[AES_BLOCKLEN] = {0};
+    AES_init_ctx_iv(&aes_ctx, aes_key, iv);
+
     while(client_active){
         char buffer[MESSAGE_LEN+USERNAME_LEN] = { 0 };
         memset(buffer, 0, MESSAGE_LEN+USERNAME_LEN);
-        int valread = read_mp(client_fd, buffer, MESSAGE_LEN+USERNAME_LEN);
 
         uint8_t iv[AES_BLOCKLEN] = { 0 };
+        int valread = read_mp(client_fd, iv, AES_BLOCKLEN);
+
+        valread = read_mp(client_fd, buffer, MESSAGE_LEN+USERNAME_LEN);
+
         AES_ctx_set_iv(&aes_ctx, iv);
         AES_CBC_decrypt_buffer(&aes_ctx, (uint8_t*)buffer, MESSAGE_LEN+USERNAME_LEN);
         
