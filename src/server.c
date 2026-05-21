@@ -7,6 +7,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "aes.h"
+#include "messagelog.h"
 
 // GLOBAL VARIABLES
 int running = 1;
@@ -33,10 +34,7 @@ mtx_t print_mutex;
 mtx_t hash_mutex;
 #endif
 
-// Message Log
-int head = 0;
-int msgs_In_log = 0;
-char msgLog[MAXLOG][MESSAGE_LEN+USERNAME_LEN];
+struct log* message_log;
 
 struct AES_ctx aes_ctx;
 uint8_t aes_key[16] = { 't', 'e', 's', 't', 'i', 'n', 'g', '1', '2', '3', '4', '5', '6', '7', '8', '!' };
@@ -54,6 +52,10 @@ int main(int argc, char *argv[]){
 
     // TINY AES SETUP
     AES_init_ctx(&aes_ctx, aes_key);
+
+    // Message log setup
+    message_log = malloc(sizeof(struct log));
+    init_log(message_log);
 
     #if !defined(__APPLE__) && !defined(__MACH__)
     // Initialize Mutex, required for threads.h
@@ -288,9 +290,9 @@ THRDFUNC client_listen(void* arg){
         valread = read_mp(user->socket, msgBuffer, MESSAGE_LEN);
 
         // Decrypt message
-        uint8_t iv[AES_BLOCKLEN] = { 0 };
-        AES_ctx_set_iv(&aes_ctx, iv);
-        AES_CBC_decrypt_buffer(&aes_ctx, (uint8_t*)msgBuffer, MESSAGE_LEN);
+        // uint8_t iv[AES_BLOCKLEN] = { 0 };
+        // AES_ctx_set_iv(&aes_ctx, iv);
+        // AES_CBC_decrypt_buffer(&aes_ctx, (uint8_t*)msgBuffer, MESSAGE_LEN);
 
         msgBuffer[MESSAGE_LEN-1] = '\0';
 
@@ -305,49 +307,7 @@ THRDFUNC client_listen(void* arg){
         
         mtx_unlock(&print_mutex);
 
-        // Check if the message is a valid command
-        if(strcmp(msgBuffer, "/EXIT\n") == 0){ // Client Disconnect Command
-            client_running = 0;
-            char msg[USERNAME_LEN + MESSAGE_LEN];
-            snprintf(msg, sizeof(msg), "%s has disconnected\n", user->username);
-            print_msg(msg);
-            send_to_all(client_id, msg, sizeof(char) * (USERNAME_LEN + MESSAGE_LEN));
-        }else if(strcmp(msgBuffer, "/list\n") == 0){ // List active users
-            char user_list[USERNAME_LEN + MESSAGE_LEN] = { 0 };
-            #if defined(_WIN32)
-            strcat_s(user_list, sizeof(user_list), "Connected Users: ");
-            #else
-            strcat(user_list, "Connected Users: ");
-            #endif
-
-            for(int i = 0; i < MAX_CLIENTS; i++){
-                if(users[i] != NULL){
-                    struct User* curr = users[i];
-                    while(curr != NULL){
-                        if(strcmp(curr->username, user->username) != 0){
-                            #if defined(_WIN32)
-                            strcat_s(user_list, sizeof(user_list), curr->username);
-                            strcat_s(user_list, sizeof(user_list), ", ");
-                            #else
-                            strcat(user_list, curr->username);
-                            strcat(user_list, ", ");
-                            #endif
-                        }
-                        curr = curr->next;
-                    }
-                }
-            }
-
-            #if defined(_WIN32)
-            strcat_s(user_list, sizeof(user_list), "\n");
-            #else
-            strcat(user_list, "\n");
-            #endif
-
-            send_to_ID(client_id, user_list, sizeof(char) * (USERNAME_LEN + MESSAGE_LEN));
-        }else{ // Normal message, send to all users
-            send_to_all(client_id, final, sizeof(char) * (USERNAME_LEN + MESSAGE_LEN));
-        }
+        send_to_all(client_id, final, sizeof(char) * (USERNAME_LEN + MESSAGE_LEN));
         
     }
 
@@ -365,7 +325,9 @@ THRDFUNC client_listen(void* arg){
 void send_to_all(char* sender_id, char* msg, size_t size){
 
     // Encrypt message
-    //AES_CBC_encrypt_buffer(&aes_ctx, (uint8_t*)msg, strlen(msg));
+    // uint8_t iv[AES_BLOCKLEN] = { 0 };
+    // AES_ctx_set_iv(&aes_ctx, iv);
+    // AES_CBC_encrypt_buffer(&aes_ctx, (uint8_t*)msg, strlen(msg));
 
     for(int i = 0; i < MAX_CLIENTS; i++){
         if(users[i] != NULL){
@@ -390,19 +352,18 @@ void print_msg(char* msg){
     
     int len = strlen(msg);
 
-    // Encrypt message
-    uint8_t iv[AES_BLOCKLEN] = { 0 };
-    AES_ctx_set_iv(&aes_ctx, iv);
-    AES_CBC_encrypt_buffer(&aes_ctx, (uint8_t*)msg, MESSAGE_LEN);
+    struct message* newmsg = add_log(message_log, msg);
 
-    memcpy(msgLog[head], msg, len);
-    head = (head+1) % MAXLOG;
-    if(msgs_In_log < MAXLOG) msgs_In_log++;
+    // Encrypt message
+    // uint8_t iv[AES_BLOCKLEN] = { 0 };
+    // AES_ctx_set_iv(&aes_ctx, iv);
+    // AES_CBC_encrypt_buffer(&aes_ctx, (uint8_t*)newmsg->msg, strlen(newmsg->msg));
 }
 
 void print_log(int client){
-    for(int i = 0; i < msgs_In_log; i++){
-        int j = (i + head) % MAXLOG;
-        send(client, msgLog[j], MESSAGE_LEN+USERNAME_LEN, 0);
+    struct message* current = message_log->tail;
+    while(current != NULL){
+        send(client, current->msg, MESSAGE_LEN+USERNAME_LEN, 0);
+        current = current->last;
     }
 }

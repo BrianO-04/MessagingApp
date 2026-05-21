@@ -100,9 +100,9 @@ int main(int argc, char *argv[]){
             send(client_fd, &msg_cmd, sizeof(cmd_types), 0);
 
             //Encrypt message
-            uint8_t iv[AES_BLOCKLEN] = { 0 };
-            AES_ctx_set_iv(&aes_ctx, iv);
-            AES_CBC_encrypt_buffer(&aes_ctx, (uint8_t*)message, MESSAGE_LEN);
+            // uint8_t iv[AES_BLOCKLEN] = { 0 };
+            // AES_ctx_set_iv(&aes_ctx, iv);
+            // AES_CBC_encrypt_buffer(&aes_ctx, (uint8_t*)message, MESSAGE_LEN);
             send(client_fd, message, sizeof(char) * MESSAGE_LEN, 0);
         }
     }
@@ -121,9 +121,9 @@ THRDFUNC server_listen(void* arg){
         memset(buffer, 0, 1024);
         int valread = read_mp(client_fd, buffer, 1024);
 
-        uint8_t iv[AES_BLOCKLEN] = { 0 };
-        AES_ctx_set_iv(&aes_ctx, iv);
-        AES_CBC_decrypt_buffer(&aes_ctx, (uint8_t*)buffer, 1024);
+        // uint8_t iv[AES_BLOCKLEN] = { 0 };
+        // AES_ctx_set_iv(&aes_ctx, iv);
+        // AES_CBC_decrypt_buffer(&aes_ctx, (uint8_t*)buffer, 1024);
         
         buffer[USERNAME_LEN+MESSAGE_LEN-1] = '\0';
         printf("%s", buffer);
