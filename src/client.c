@@ -15,7 +15,7 @@ int client_active = 1;
 struct sockaddr_in server_addr;
 
 struct AES_ctx aes_ctx;
-uint8_t aes_key[16] = { 0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF };
+uint8_t aes_key[16] = { 't', 'e', 's', 't', 'i', 'n', 'g', '1', '2', '3', '4', '5', '6', '7', '8', '!' };
 
 
 int main(int argc, char *argv[]){
