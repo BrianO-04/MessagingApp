@@ -2,6 +2,7 @@
 #define MSGLOG_H_
 
 #include "macros.h"
+#include "aes.h"
 #define MAXLOG 30
 
 struct log{
@@ -12,6 +13,8 @@ struct log{
 
 struct message{
     char msg[MESSAGE_LEN+USERNAME_LEN];
+
+    uint8_t iv[AES_BLOCKLEN];
 
     struct message* next;
     struct message* last;
