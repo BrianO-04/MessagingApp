@@ -292,14 +292,14 @@ THRDFUNC client_listen(void* arg){
         }
 
         // Read incomming Iv
-        uint8_t iv[AES_BLOCKLEN] = { 0 };
-        valread = read_mp(user->socket, iv, AES_BLOCKLEN);
+        uint8_t newiv[AES_BLOCKLEN] = { 0 };
+        valread = read_mp(user->socket, newiv, AES_BLOCKLEN);
 
         // Read incoming message
         valread = read_mp(user->socket, msgBuffer, MESSAGE_LEN);
 
         // Decrypt message
-        AES_ctx_set_iv(&aes_ctx, iv);
+        AES_init_ctx_iv(&aes_ctx, aes_key, newiv);
         AES_CBC_decrypt_buffer(&aes_ctx, (uint8_t*)msgBuffer, MESSAGE_LEN);
 
         msgBuffer[MESSAGE_LEN-1] = '\0';

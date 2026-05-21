@@ -130,7 +130,7 @@ THRDFUNC server_listen(void* arg){
 
         valread = read_mp(client_fd, buffer, MESSAGE_LEN+USERNAME_LEN);
 
-        AES_ctx_set_iv(&aes_ctx, iv);
+        AES_init_ctx_iv(&aes_ctx, aes_key, iv);
         AES_CBC_decrypt_buffer(&aes_ctx, (uint8_t*)buffer, MESSAGE_LEN+USERNAME_LEN);
         
         buffer[USERNAME_LEN+MESSAGE_LEN-1] = '\0';
