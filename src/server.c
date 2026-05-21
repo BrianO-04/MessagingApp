@@ -35,10 +35,11 @@ mtx_t hash_mutex;
 
 // Message Log
 int head = 0;
+int msgs_In_log = 0;
 char msgLog[MAXLOG][MESSAGE_LEN+USERNAME_LEN];
 
 struct AES_ctx aes_ctx;
-uint8_t aes_key[16] = { 0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF };
+uint8_t aes_key[16] = { 't', 'e', 's', 't', 'i', 'n', 'g', '1', '2', '3', '4', '5', '6', '7', '8', '!' };
 
 int main(int argc, char *argv[]){
     
@@ -387,18 +388,21 @@ void send_to_ID(char* client_id, char* msg, size_t size){
 void print_msg(char* msg){
     printf("%s", msg);
     
+    int len = strlen(msg);
+
     // Encrypt message
     uint8_t iv[AES_BLOCKLEN] = { 0 };
     AES_ctx_set_iv(&aes_ctx, iv);
     AES_CBC_encrypt_buffer(&aes_ctx, (uint8_t*)msg, MESSAGE_LEN);
 
-    strcpy(msgLog[head], msg);
+    memcpy(msgLog[head], msg, len);
     head = (head+1) % MAXLOG;
+    if(msgs_In_log < MAXLOG) msgs_In_log++;
 }
 
 void print_log(int client){
-    for(int i = 0; i < MAXLOG; i++){
+    for(int i = 0; i < msgs_In_log; i++){
         int j = (i + head) % MAXLOG;
-        send(client, msgLog[j], strlen(msgLog[j]), 0);
+        send(client, msgLog[j], MESSAGE_LEN+USERNAME_LEN, 0);
     }
 }
