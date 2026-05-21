@@ -361,9 +361,9 @@ void print_msg(char* msg){
 }
 
 void print_log(int client){
-    struct message* current = message_log->tail;
+    struct message* current = message_log->head;
     while(current != NULL){
         send(client, current->msg, MESSAGE_LEN+USERNAME_LEN, 0);
-        current = current->last;
+        current = current->next;
     }
 }
