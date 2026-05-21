@@ -13,6 +13,7 @@ add_executable(MessagingApp
     src/client.c)
 
 add_executable(MessagingServer 
+    src/messagelog.c
     src/aes.c
     src/macros.c
     src/hashmap.c
