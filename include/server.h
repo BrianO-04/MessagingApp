@@ -27,6 +27,12 @@ void send_to_all(char* sender_id, char* msg, size_t size, struct AES_ctx* aes_ct
 void send_to_ID(char* client_id, char* msg, size_t size);
 
 void print_msg(char* msg, struct AES_ctx* aes_ctx);
+
+#if defined(_WIN32)
+void print_log(SOCKET client);
+#else
 void print_log(int client);
+#endif
+
 
 #endif

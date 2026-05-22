@@ -6,6 +6,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <winsock2.h>
 #include "messagelog.h"
 
 // GLOBAL VARIABLES
@@ -333,7 +334,11 @@ THRDFUNC client_listen(void* arg){
 void send_to_all(char* sender_id, char* msg, size_t size, struct AES_ctx* aes_ctx){
 
     char cpy[USERNAME_LEN+MESSAGE_LEN];
+    #if defined(_WIN32)
+    strcpy_s(cpy, USERNAME_LEN+MESSAGE_LEN, msg);
+    #else
     strcpy(cpy, msg);
+    #endif
 
     uint8_t iv[AES_BLOCKLEN] = { 0 };
     memcpy(iv, aes_ctx->Iv, AES_BLOCKLEN);
@@ -370,7 +375,11 @@ void print_msg(char* msg, struct AES_ctx* aes_ctx){
     AES_CBC_encrypt_buffer(aes_ctx, (uint8_t*)newmsg->msg, USERNAME_LEN+MESSAGE_LEN);
 }
 
+#if defined(_WIN32)
+void print_log(SOCKET client){
+#else
 void print_log(int client){
+#endif
     struct message* current = message_log->head;
     while(current != NULL){
         send(client, current->iv, AES_BLOCKLEN, 0);
