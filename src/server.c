@@ -2,31 +2,11 @@
 #include "macros.h"
 #include "user.h"
 #include "hashmap.h"
-
-// MacOS does not support threads.h so use pthread.h instead
-#if defined(__APPLE__) && defined(__MACH__)
-#include <pthread.h>
-#else
-#include <threads.h>
-#endif
-
-// Windows Sockets
-#if defined(_WIN32)
-#include <winsock2.h>
-#include <ws2tcpip.h>
-#include <ws2spi.h>
-#include <BaseTsd.h>
-#else // Posix sockets
-#include <unistd.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-#endif
-
-
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "messagelog.h"
 
 // GLOBAL VARIABLES
 int running = 1;
@@ -53,9 +33,9 @@ mtx_t print_mutex;
 mtx_t hash_mutex;
 #endif
 
-// Message Log
-int head = 0;
-char msgLog[MAXLOG][MESSAGE_LEN+USERNAME_LEN];
+struct log* message_log;
+
+uint8_t aes_key[16] = { 't', 'e', 's', 't', 'i', 'n', 'g', '1', '2', '3', '4', '5', '6', '7', '8', '!' };
 
 int main(int argc, char *argv[]){
     
@@ -67,6 +47,15 @@ int main(int argc, char *argv[]){
         return -1;
     }
     #endif
+
+    // TINY AES SETUP
+    struct AES_ctx aes_ctx;
+    uint8_t iv[AES_BLOCKLEN] = {0};
+    AES_init_ctx_iv(&aes_ctx, aes_key, iv);
+
+    // Message log setup
+    message_log = malloc(sizeof(struct log));
+    init_log(message_log);
 
     #if !defined(__APPLE__) && !defined(__MACH__)
     // Initialize Mutex, required for threads.h
@@ -219,8 +208,6 @@ THRDFUNC connection_listen(void* arg){
         cmd_types confirm = USR_CONF;
         send(new_socket, &confirm, sizeof(cmd_types), 0);
 
-        printf("%s joined the chat\n", namebuf);
-
         // Create User struct
         struct User* new_user = malloc(sizeof(struct User));
         new_user->username = malloc(sizeof(char) * USERNAME_LEN);
@@ -267,6 +254,11 @@ THRDFUNC connection_listen(void* arg){
 }
 
 THRDFUNC client_listen(void* arg){
+    // Set up AES
+    struct AES_ctx aes_ctx;
+    uint8_t iv[AES_BLOCKLEN] = {0};
+    AES_init_ctx_iv(&aes_ctx, aes_key, iv);
+
     // Get user struct and username from passed in arg
     struct User* user = (struct User*)arg;
     char* client_id = user->username;
@@ -274,8 +266,8 @@ THRDFUNC client_listen(void* arg){
     // Broadcast join message to all users
     char joinMSG[USERNAME_LEN + MESSAGE_LEN];
     snprintf(joinMSG, sizeof(joinMSG), "%s joined the chat\n", client_id);
-    send_to_all(client_id, joinMSG, sizeof(char) * (USERNAME_LEN + MESSAGE_LEN));
-    print_msg(joinMSG);
+    print_msg(joinMSG, &aes_ctx);
+    send_to_all(client_id, joinMSG, USERNAME_LEN + MESSAGE_LEN, &aes_ctx);
 
     print_log(user->socket);
 
@@ -284,6 +276,8 @@ THRDFUNC client_listen(void* arg){
     int client_running = 1;
     while(client_running){
 
+        memset(msgBuffer, 0, 1024);
+
         cmd_types incomming_type = EMPTY;
         int valread = read_mp(user->socket, &incomming_type, sizeof(cmd_types));
 
@@ -291,14 +285,22 @@ THRDFUNC client_listen(void* arg){
             client_running = 0;
             char msg[USERNAME_LEN + MESSAGE_LEN];
             snprintf(msg, sizeof(msg), "%s has disconnected\n", user->username);
-            //printf("%s", msg);
-            print_msg(msg);
-            send_to_all(client_id, msg, sizeof(char) * (USERNAME_LEN + MESSAGE_LEN));
+
+            print_msg(msg, &aes_ctx);
+            send_to_all(client_id, msg, USERNAME_LEN + MESSAGE_LEN, &aes_ctx);
             break;
         }
 
+        // Read incomming Iv
+        uint8_t newiv[AES_BLOCKLEN] = { 0 };
+        valread = read_mp(user->socket, newiv, AES_BLOCKLEN);
+
         // Read incoming message
         valread = read_mp(user->socket, msgBuffer, MESSAGE_LEN);
+
+        // Decrypt message
+        AES_init_ctx_iv(&aes_ctx, aes_key, newiv);
+        AES_CBC_decrypt_buffer(&aes_ctx, (uint8_t*)msgBuffer, MESSAGE_LEN);
 
         msgBuffer[MESSAGE_LEN-1] = '\0';
 
@@ -309,53 +311,11 @@ THRDFUNC client_listen(void* arg){
         mtx_lock(&print_mutex);
 
         //printf("%s", final);
-        print_msg(final);
+        print_msg(final, &aes_ctx);
         
         mtx_unlock(&print_mutex);
 
-        // Check if the message is a valid command
-        if(strcmp(msgBuffer, "/EXIT\n") == 0){ // Client Disconnect Command
-            client_running = 0;
-            char msg[USERNAME_LEN + MESSAGE_LEN];
-            snprintf(msg, sizeof(msg), "%s has disconnected\n", user->username);
-            print_msg(msg);
-            send_to_all(client_id, msg, sizeof(char) * (USERNAME_LEN + MESSAGE_LEN));
-        }else if(strcmp(msgBuffer, "/list\n") == 0){ // List active users
-            char user_list[USERNAME_LEN + MESSAGE_LEN] = { 0 };
-            #if defined(_WIN32)
-            strcat_s(user_list, sizeof(user_list), "Connected Users: ");
-            #else
-            strcat(user_list, "Connected Users: ");
-            #endif
-
-            for(int i = 0; i < MAX_CLIENTS; i++){
-                if(users[i] != NULL){
-                    struct User* curr = users[i];
-                    while(curr != NULL){
-                        if(strcmp(curr->username, user->username) != 0){
-                            #if defined(_WIN32)
-                            strcat_s(user_list, sizeof(user_list), curr->username);
-                            strcat_s(user_list, sizeof(user_list), ", ");
-                            #else
-                            strcat(user_list, curr->username);
-                            strcat(user_list, ", ");
-                            #endif
-                        }
-                        curr = curr->next;
-                    }
-                }
-            }
-
-            #if defined(_WIN32)
-            strcat_s(user_list, sizeof(user_list), "\n");
-            #else
-            strcat(user_list, "\n");
-            #endif
-
-            send_to_ID(client_id, user_list, sizeof(char) * (USERNAME_LEN + MESSAGE_LEN));
-        }else{ // Normal message, send to all users
-            send_to_all(client_id, final, sizeof(char) * (USERNAME_LEN + MESSAGE_LEN));
-        }
+        send_to_all(client_id, final, sizeof(char) * (USERNAME_LEN + MESSAGE_LEN), &aes_ctx);
         
     }
 
@@ -370,13 +330,28 @@ THRDFUNC client_listen(void* arg){
     return THRDEXIT;
 }
 
-void send_to_all(char* sender_id, char* msg, size_t size){
+void send_to_all(char* sender_id, char* msg, size_t size, struct AES_ctx* aes_ctx){
+
+    char cpy[USERNAME_LEN+MESSAGE_LEN];
+    #if defined(_WIN32)
+    strcpy_s(cpy, USERNAME_LEN+MESSAGE_LEN, msg);
+    #else
+    strcpy(cpy, msg);
+    #endif
+
+    uint8_t iv[AES_BLOCKLEN] = { 0 };
+    memcpy(iv, aes_ctx->Iv, AES_BLOCKLEN);
+
+    // Encrypt message
+    AES_CBC_encrypt_buffer(aes_ctx, (uint8_t*)cpy, USERNAME_LEN+MESSAGE_LEN);
+    
     for(int i = 0; i < MAX_CLIENTS; i++){
         if(users[i] != NULL){
             struct User* curr = users[i];
             while(curr != NULL){
                 if(strcmp(curr->username, sender_id) != 0){
-                    send(curr->socket, msg, strlen(msg), 0);
+                    send(curr->socket, iv, AES_BLOCKLEN, 0);
+                    send(curr->socket, cpy, USERNAME_LEN+MESSAGE_LEN, 0);
                 }
                 curr = curr->next;
             }
@@ -389,15 +364,25 @@ void send_to_ID(char* client_id, char* msg, size_t size){
     send(target->socket, msg, strlen(msg), 0);
 }
 
-void print_msg(char* msg){
-    printf("%s", msg);
-    strcpy(msgLog[head], msg);
-    head = (head+1) % MAXLOG;
+void print_msg(char* msg, struct AES_ctx* aes_ctx){
+    printf("%s", msg);;
+
+    struct message* newmsg = add_log(message_log, msg);
+
+    // Encrypt message
+    memcpy(newmsg->iv, aes_ctx->Iv, AES_BLOCKLEN);
+    AES_CBC_encrypt_buffer(aes_ctx, (uint8_t*)newmsg->msg, USERNAME_LEN+MESSAGE_LEN);
 }
 
+#if defined(_WIN32)
+void print_log(SOCKET client){
+#else
 void print_log(int client){
-    for(int i = 0; i < MAXLOG; i++){
-        int j = (i + head) % MAXLOG;
-        send(client, msgLog[j], strlen(msgLog[j]), 0);
+#endif
+    struct message* current = message_log->head;
+    while(current != NULL){
+        send(client, current->iv, AES_BLOCKLEN, 0);
+        send(client, current->msg, MESSAGE_LEN+USERNAME_LEN, 0);
+        current = current->next;
     }
 }

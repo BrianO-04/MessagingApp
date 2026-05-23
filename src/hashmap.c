@@ -53,7 +53,6 @@ struct User* get(char* key, struct User** hash_table){
         curr = curr->next;
     }
 
-    printf("User not found, returning null\n");
     return NULL;
 }
 

@@ -8,10 +8,13 @@ include_directories(include)
 include_directories(src)
 
 add_executable(MessagingApp 
+    src/aes.c
     src/macros.c
     src/client.c)
 
 add_executable(MessagingServer 
+    src/messagelog.c
+    src/aes.c
     src/macros.c
     src/hashmap.c
     src/server.c)

@@ -2,6 +2,7 @@
 #define SERVER_H_
 
 #include "macros.h"
+#include "aes.h"
 
 int main(int argc, char *argv[]);
 
@@ -20,12 +21,18 @@ int client_listen(void* arg);
 #endif
 
 // Send a message to all connected clients
-void send_to_all(char* sender_id, char* msg, size_t size);
+void send_to_all(char* sender_id, char* msg, size_t size, struct AES_ctx* aes_ctx);
 
 // Send to specific user
 void send_to_ID(char* client_id, char* msg, size_t size);
 
-void print_msg(char* msg);
+void print_msg(char* msg, struct AES_ctx* aes_ctx);
+
+#if defined(_WIN32)
+void print_log(SOCKET client);
+#else
 void print_log(int client);
+#endif
+
 
 #endif
