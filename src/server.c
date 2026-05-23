@@ -273,7 +273,7 @@ THRDFUNC client_listen(void* arg){
     AES_CBC_encrypt_buffer(&aes_ctx, (uint8_t*)joinMSG, MESSAGE_LEN);
 
     // Broadcast join message to all users
-    add_to_log(joinMSG, "[SERVER]\0", join_iv);
+    add_log(message_log, joinMSG, "[SERVER]\0", join_iv);
     send_to_all(client_id, joinMSG, join_iv, 1);
     print_log(user->socket);
 
@@ -297,7 +297,7 @@ THRDFUNC client_listen(void* arg){
             memcpy(dc_iv, aes_ctx.Iv, AES_BLOCKLEN);
             AES_CBC_encrypt_buffer(&aes_ctx, (uint8_t*)msg, MESSAGE_LEN);
 
-            add_to_log(msg, "[SERVER]\0", dc_iv);
+            add_log(message_log, msg, "[SERVER]\0", dc_iv);
             send_to_all(client_id, msg, dc_iv, 1);
             break;
         }
@@ -310,7 +310,7 @@ THRDFUNC client_listen(void* arg){
         valread = read_mp(user->socket, msgBuffer, MESSAGE_LEN);
 
         // Send message and add to log
-        add_to_log(msgBuffer, client_id, newiv);
+        add_log(message_log, msgBuffer, client_id, newiv);
         send_to_all(client_id, msgBuffer, newiv, 0);
     }
 
@@ -351,11 +351,6 @@ void send_to_all(char* sender_id, char* msg, uint8_t* iv, int is_server){
 void send_to_ID(char* client_id, char* msg, size_t size){
     struct User* target = get(client_id, users);
     send(target->socket, msg, strlen(msg), 0);
-}
-
-void add_to_log(char* msg, char* usr, uint8_t* iv){
-    struct message* newmsg = add_log(message_log, msg, usr);
-    memcpy(newmsg->iv, iv, AES_BLOCKLEN);
 }
 
 #if defined(_WIN32)
