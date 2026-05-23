@@ -9,11 +9,15 @@ void init_log(struct log* log){
     log->tail = NULL;
 }
 
-struct message* add_log(struct log* log, char* msg){
+struct message* add_log(struct log* log, char* msg, char* usr){
     struct message* newMsg = malloc(sizeof(struct message));
-    memset(newMsg->msg, 0, USERNAME_LEN+MESSAGE_LEN);
+    memset(newMsg->msg, 0, MESSAGE_LEN);
+    memset(newMsg->usr, 0, USERNAME_LEN);
     memset(newMsg->iv, 0, AES_BLOCKLEN);
+
     strcpy(newMsg->msg, msg);
+    strcpy(newMsg->usr, usr);
+
     newMsg->next = NULL;
     newMsg->last = NULL;
     

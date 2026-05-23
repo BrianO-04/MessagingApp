@@ -12,7 +12,8 @@ struct log{
 };
 
 struct message{
-    char msg[MESSAGE_LEN+USERNAME_LEN];
+    char msg[MESSAGE_LEN];
+    char usr[USERNAME_LEN];
 
     uint8_t iv[AES_BLOCKLEN];
 
@@ -22,6 +23,6 @@ struct message{
 
 void init_log(struct log* log);
 
-struct message* add_log(struct log* log, char* msg);
+struct message* add_log(struct log* log, char* msg, char* usr);
 
 #endif
