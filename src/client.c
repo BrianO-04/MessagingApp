@@ -122,19 +122,31 @@ THRDFUNC server_listen(void* arg){
     AES_init_ctx_iv(&aes_ctx, aes_key, iv);
 
     while(client_active){
-        char buffer[MESSAGE_LEN+USERNAME_LEN] = { 0 };
-        memset(buffer, 0, MESSAGE_LEN+USERNAME_LEN);
+        char msg_buffer[MESSAGE_LEN] = { 0 };
+        memset(msg_buffer, 0, MESSAGE_LEN);
 
+        char usr_buffer[USERNAME_LEN] = { 0 };
+        memset(usr_buffer, 0, USERNAME_LEN);
+
+        // Read message IV from server
         uint8_t iv[AES_BLOCKLEN] = { 0 };
         int valread = read_mp(client_fd, iv, AES_BLOCKLEN);
 
-        valread = read_mp(client_fd, buffer, MESSAGE_LEN+USERNAME_LEN);
+        // Read username from server
+        valread = read_mp(client_fd, usr_buffer, USERNAME_LEN);
+
+        // Read encrypted message from server
+        valread = read_mp(client_fd, msg_buffer, MESSAGE_LEN);
 
         AES_init_ctx_iv(&aes_ctx, aes_key, iv);
-        AES_CBC_decrypt_buffer(&aes_ctx, (uint8_t*)buffer, MESSAGE_LEN+USERNAME_LEN);
+        AES_CBC_decrypt_buffer(&aes_ctx, (uint8_t*)msg_buffer, MESSAGE_LEN+USERNAME_LEN);
         
-        buffer[USERNAME_LEN+MESSAGE_LEN-1] = '\0';
-        printf("%s", buffer);
+        msg_buffer[MESSAGE_LEN-1] = '\0';
+
+        char final[USERNAME_LEN+MESSAGE_LEN+2];
+        snprintf(final, sizeof(final), "%s: %s", usr_buffer, msg_buffer);
+
+        printf("%s", final);
     }
     thrd_exit(THRDEXIT);
     return THRDEXIT;
