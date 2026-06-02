@@ -14,7 +14,7 @@ struct message* add_log(struct log* log, char* msg, char* usr, uint8_t* iv){
     memset(newMsg->msg, 0, MESSAGE_LEN);
     memset(newMsg->usr, 0, USERNAME_LEN);
 
-    strcpy(newMsg->msg, msg);
+    memcpy(newMsg->msg, msg, MESSAGE_LEN);
     strcpy(newMsg->usr, usr);
     memcpy(newMsg->iv, iv, AES_BLOCKLEN);
 
