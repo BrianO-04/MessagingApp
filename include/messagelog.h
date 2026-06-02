@@ -25,4 +25,6 @@ void init_log(struct log* log);
 
 struct message* add_log(struct log* log, char* msg, char* usr, uint8_t* iv);
 
+void free_log(struct log* log);
+
 #endif

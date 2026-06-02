@@ -47,3 +47,12 @@ struct message* add_log(struct log* log, char* msg, char* usr, uint8_t* iv){
 
     return newMsg;
 }
+
+void free_log(struct log* log){
+    struct message* curr = log->head;
+    while(curr != NULL){
+        struct message* next = curr->next;
+        free(curr);
+        curr = next;
+    }
+}
