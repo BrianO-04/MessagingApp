@@ -143,7 +143,7 @@ int main(int argc, char *argv[]){
 
     free(ui_args);
     free(new_message);
-    //PROPERLY FREE THE WHOLE LINKED LIST LATER
+    free_log(message_log);
     free(message_log);
     
     return 0;
