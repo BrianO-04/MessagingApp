@@ -33,7 +33,7 @@ THRDFUNC init_ui(void* arg){
     initscr();
     cbreak();
     noecho();
-    WINDOW* win = newwin(34, MESSAGE_LEN/2, 0, 0);
+    WINDOW* win = newwin(33, MESSAGE_LEN/2, 0, 0);
     keypad(win, true);
     meta(win, TRUE);
     
