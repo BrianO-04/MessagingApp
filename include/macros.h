@@ -27,6 +27,9 @@
 #define USERNAME_LEN 16
 #define PORT 8080
 
+static uint8_t aes_key[16] = "testing12345678!";
+
+
 typedef enum{
     EMPTY,
     MESSAGE,
@@ -59,6 +62,11 @@ int read_mp(int fd, void* buf, size_t nbytes);
 
 #define mtx_unlock pthread_mutex_unlock
 #define mtx_lock pthread_mutex_lock
+
+#define mtx_init pthread_mutex_init
+#define mtx_plain NULL
+
+#define mtx_t pthread_mutex_t
 
 #define thrd_t pthread_t
 

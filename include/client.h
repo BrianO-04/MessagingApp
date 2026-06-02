@@ -2,6 +2,8 @@
 #define CLIENT_H_
 
 #include "macros.h"
+#include "messagelog.h"
+
 
 int main(int argc, char *argv[]);
 

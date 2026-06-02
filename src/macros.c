@@ -1,7 +1,5 @@
 #include "macros.h"
 
-
-
 #if defined(_WIN32)
 int read_mp(SOCKET fd, void* buf, int nbytes){
     return recv(fd, buf, nbytes, 0);
