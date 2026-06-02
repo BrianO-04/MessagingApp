@@ -8,6 +8,8 @@ include_directories(include)
 include_directories(src)
 
 add_executable(MessagingApp 
+    src/cursesUI.c
+    src/messagelog.c
     src/aes.c
     src/macros.c
     src/client.c)
@@ -23,3 +25,5 @@ if(WIN32)
     target_link_libraries(MessagingApp ws2_32)
     target_link_libraries(MessagingServer ws2_32)
 endif()
+
+target_link_libraries(MessagingApp PRIVATE ncurses)
