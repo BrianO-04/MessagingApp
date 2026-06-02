@@ -4,6 +4,7 @@
 #include "cursesUI.h"
 #include "messagelog.h"
 #include "aes.h"
+#include "macros.h"
 
 #define IN_LINE 31
 
