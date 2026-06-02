@@ -35,8 +35,6 @@ mtx_t hash_mutex;
 
 struct log* message_log;
 
-uint8_t aes_key[16] = { 't', 'e', 's', 't', 'i', 'n', 'g', '1', '2', '3', '4', '5', '6', '7', '8', '!' };
-
 int main(int argc, char *argv[]){
     
     #if defined(_WIN32)
