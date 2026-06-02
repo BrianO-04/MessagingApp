@@ -16,6 +16,7 @@ THRDFUNC init_ui(void* arg){
     mtx_t *log_lock = (mtx_t*)ui_args[2];
     int client_fd = *(int*)ui_args[3];
     char* uname = (char*)ui_args[4];
+    int* client_active = (int*)ui_args[5];
 
     //*ui_initialized = 1;
 
@@ -53,29 +54,39 @@ THRDFUNC init_ui(void* arg){
         curr = wgetch(win);
         if(curr != ERR){
             if(curr == '\n'){
-                 //Send message
-                cmd_types msg_cmd = MESSAGE;
-                send(client_fd, &msg_cmd, sizeof(cmd_types), 0);
+                if(strcmp(msg, "/EXIT") == 0){
+                    cmd_types ext_cmd = USR_EXIT;
+                    send(client_fd, &ext_cmd, sizeof(cmd_types), 0);
 
-                send(client_fd, enc_ctx.Iv, AES_BLOCKLEN, 0);
+                    werase(win);
+                    wrefresh(win);
 
-                uint8_t iv[AES_BLOCKLEN] = { 0 };
-                memcpy(iv, enc_ctx.Iv, AES_BLOCKLEN);
+                    *client_active = 0;
+                }else{
+                    //Send message
+                    cmd_types msg_cmd = MESSAGE;
+                    send(client_fd, &msg_cmd, sizeof(cmd_types), 0);
 
-                //Encrypt message
-                char encrypted[MESSAGE_LEN];
-                memcpy(encrypted, msg, MESSAGE_LEN);
-                AES_CBC_encrypt_buffer(&enc_ctx, (uint8_t*)encrypted, MESSAGE_LEN);
-        
-                send(client_fd, encrypted, MESSAGE_LEN, 0);
+                    send(client_fd, enc_ctx.Iv, AES_BLOCKLEN, 0);
 
-                mtx_lock(log_lock);
-                add_log(message_log, encrypted, uname, iv);
-                *new_message = 1;
-                mtx_unlock(log_lock);
+                    uint8_t iv[AES_BLOCKLEN] = { 0 };
+                    memcpy(iv, enc_ctx.Iv, AES_BLOCKLEN);
 
-                memset(msg, '\0', MESSAGE_LEN);
-                ind = 0;
+                    //Encrypt message
+                    char encrypted[MESSAGE_LEN];
+                    memcpy(encrypted, msg, MESSAGE_LEN);
+                    AES_CBC_encrypt_buffer(&enc_ctx, (uint8_t*)encrypted, MESSAGE_LEN);
+            
+                    send(client_fd, encrypted, MESSAGE_LEN, 0);
+
+                    mtx_lock(log_lock);
+                    add_log(message_log, encrypted, uname, iv);
+                    *new_message = 1;
+                    mtx_unlock(log_lock);
+
+                    memset(msg, '\0', MESSAGE_LEN);
+                    ind = 0;
+                }
             }else if(curr == '\b' || curr == 127 || curr == KEY_BACKSPACE){
                 if(ind > 0){
                     // Delete last char

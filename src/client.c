@@ -98,12 +98,13 @@ int main(int argc, char *argv[]){
     *new_message = 0;
 
     // Create array with shared variable pointers
-    void **ui_args = malloc(sizeof(void*)*5);
+    void **ui_args = malloc(sizeof(void*)*6);
     ui_args[0] = new_message;
     ui_args[1] = message_log;
     ui_args[2] = &log_lock;
     ui_args[3] = &client_fd;
     ui_args[4] = uname;
+    ui_args[5] = &client_active; // This cannot be safe to do please fix when refactoring
 
     thrd_t ui_thread;
     thrd_create(&ui_thread, init_ui, ui_args);
