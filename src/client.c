@@ -5,17 +5,20 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "cursesUI.h"
 
 
 // GLOBAL VARIABLES
 SOCKET client_fd;
 
 int status;
-int client_active = 1;
 struct sockaddr_in server_addr;
 
-uint8_t aes_key[16] = { 't', 'e', 's', 't', 'i', 'n', 'g', '1', '2', '3', '4', '5', '6', '7', '8', '!' };
+int *ui_initialized, *new_message;
+struct log* message_log;
+int client_active = 1;
 
+mtx_t log_lock;
 
 int main(int argc, char *argv[]){
 
@@ -28,10 +31,16 @@ int main(int argc, char *argv[]){
     }
     #endif
 
+    mtx_init(&log_lock, mtx_plain);
+
     // TINY AES SETUP
     struct AES_ctx aes_ctx;
     uint8_t iv[AES_BLOCKLEN] = {0};
     AES_init_ctx_iv(&aes_ctx, aes_key, iv);
+
+    // Message log setup
+    message_log = malloc(sizeof(struct log));
+    init_log(message_log);
 
     char buffer[1024] = { 0 };
 
@@ -82,29 +91,48 @@ int main(int argc, char *argv[]){
         printf("Kicked from server!\n");
     }
 
+    // Initialize shared variables for UI
+    ui_initialized = malloc(sizeof(int));
+    new_message = malloc(sizeof(int));
+    *ui_initialized = 0;
+    *new_message = 0;
+
+    // Create array with shared variable pointers
+    void **ui_args = malloc(sizeof(void*)*5);
+    ui_args[0] = ui_initialized;
+    ui_args[1] = new_message;
+    ui_args[2] = message_log;
+    ui_args[3] = &log_lock;
+    ui_args[4] = &client_fd;
+
+    thrd_t ui_thread;
+    thrd_create(&ui_thread, init_ui, ui_args);
 
     thrd_t messaging_thread;
     thrd_create(&messaging_thread, server_listen, NULL);
 
     while(client_active){
-        char message[MESSAGE_LEN];
-        memset(message, 0, MESSAGE_LEN);
-        fgets(message, sizeof(message), stdin);
+        // Only use terminal input when there is no UI
+        if(*ui_initialized == 0){
+            char message[MESSAGE_LEN];
+            memset(message, 0, MESSAGE_LEN);
+            fgets(message, sizeof(message), stdin);
 
-        if(strcmp(message, "/EXIT\n") == 0){ // Disconnect Command
-            cmd_types ext_cmd = USR_EXIT;
-            send(client_fd, &ext_cmd, sizeof(cmd_types), 0);
-            client_active = 0;
-        }else {
-            //Send message
-            cmd_types msg_cmd = MESSAGE;
-            send(client_fd, &msg_cmd, sizeof(cmd_types), 0);
+            if(strcmp(message, "/EXIT\n") == 0){ // Disconnect Command
+                cmd_types ext_cmd = USR_EXIT;
+                send(client_fd, &ext_cmd, sizeof(cmd_types), 0);
+                client_active = 0;
+            }else {
+                //Send message
+                cmd_types msg_cmd = MESSAGE;
+                send(client_fd, &msg_cmd, sizeof(cmd_types), 0);
 
-            send(client_fd, aes_ctx.Iv, AES_BLOCKLEN, 0);
-            //Encrypt message
-            AES_CBC_encrypt_buffer(&aes_ctx, (uint8_t*)message, MESSAGE_LEN);
-            
-            send(client_fd, message, sizeof(char) * MESSAGE_LEN, 0);
+                send(client_fd, aes_ctx.Iv, AES_BLOCKLEN, 0);
+                //Encrypt message
+                AES_CBC_encrypt_buffer(&aes_ctx, (uint8_t*)message, MESSAGE_LEN);
+                
+                send(client_fd, message, sizeof(char) * MESSAGE_LEN, 0);
+            }
         }
     }
 
@@ -112,6 +140,12 @@ int main(int argc, char *argv[]){
     // thrd_join(messaging_thread, NULL);
 
     closesocket(client_fd);
+
+    free(ui_args);
+    free(new_message);
+    free(ui_initialized);
+    //PROPERLY FREE THE WHOLE LINKED LIST LATER
+    free(message_log);
     
     return 0;
 }
@@ -139,14 +173,26 @@ THRDFUNC server_listen(void* arg){
         valread = read_mp(client_fd, msg_buffer, MESSAGE_LEN);
 
         AES_init_ctx_iv(&aes_ctx, aes_key, iv);
-        AES_CBC_decrypt_buffer(&aes_ctx, (uint8_t*)msg_buffer, MESSAGE_LEN+USERNAME_LEN);
+        char decrypted_msg[MESSAGE_LEN];
+        memcpy(decrypted_msg, msg_buffer, MESSAGE_LEN);
+        AES_CBC_decrypt_buffer(&aes_ctx, (uint8_t*)decrypted_msg, MESSAGE_LEN);
         
-        msg_buffer[MESSAGE_LEN-1] = '\0';
+        decrypted_msg[MESSAGE_LEN-1] = '\0';
 
         char final[USERNAME_LEN+MESSAGE_LEN+2];
-        snprintf(final, sizeof(final), "%s: %s", usr_buffer, msg_buffer);
+        snprintf(final, sizeof(final), "%s: %s", usr_buffer, decrypted_msg);
 
-        printf("%s", final);
+        if(*ui_initialized == 0){
+            printf("%s", final);
+        }
+
+
+        mtx_lock(&log_lock);
+
+        add_log(message_log, msg_buffer, usr_buffer, iv);
+        *new_message = 1;
+
+        mtx_unlock(&log_lock);
     }
     thrd_exit(THRDEXIT);
     return THRDEXIT;
