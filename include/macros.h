@@ -27,6 +27,9 @@
 #define USERNAME_LEN 16
 #define PORT 8080
 
+static uint8_t aes_key[16] = { 't', 'e', 's', 't', 'i', 'n', 'g', '1', '2', '3', '4', '5', '6', '7', '8', '!' };
+
+
 typedef enum{
     EMPTY,
     MESSAGE,
