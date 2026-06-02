@@ -1,4 +1,9 @@
+#if defined(_WIN32)
+#include <curses.h>
+#else
 #include <ncurses.h>
+#endif
+
 #include <stdlib.h>
 #include <string.h>
 #include "cursesUI.h"
@@ -37,7 +42,6 @@ THRDFUNC init_ui(void* arg){
     noecho();
     WINDOW* win = newwin(33, MESSAGE_LEN/2, 0, 0);
     keypad(win, true);
-    meta(win, TRUE);
     
     wtimeout(win, 100);
 
@@ -88,7 +92,7 @@ THRDFUNC init_ui(void* arg){
                     memset(msg, '\0', MESSAGE_LEN);
                     ind = 0;
                 }
-            }else if(curr == '\b' || curr == 127 || curr == KEY_BACKSPACE){
+            }else if(curr == '\b' || curr == 127 || curr == KEY_BACKSPACE || curr == 8){
                 if(ind > 0){
                     // Delete last char
                     msg[--ind] = '\0';
