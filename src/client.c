@@ -14,7 +14,8 @@ SOCKET client_fd;
 int status;
 struct sockaddr_in server_addr;
 
-int *ui_initialized, *new_message;
+int *new_message;
+int ui_initialized;
 struct log* message_log;
 int client_active = 1;
 
@@ -92,18 +93,16 @@ int main(int argc, char *argv[]){
     }
 
     // Initialize shared variables for UI
-    ui_initialized = malloc(sizeof(int));
     new_message = malloc(sizeof(int));
-    *ui_initialized = 0;
+    ui_initialized = 1;
     *new_message = 0;
 
     // Create array with shared variable pointers
-    void **ui_args = malloc(sizeof(void*)*5);
-    ui_args[0] = ui_initialized;
-    ui_args[1] = new_message;
-    ui_args[2] = message_log;
-    ui_args[3] = &log_lock;
-    ui_args[4] = &client_fd;
+    void **ui_args = malloc(sizeof(void*)*4);
+    ui_args[0] = new_message;
+    ui_args[1] = message_log;
+    ui_args[2] = &log_lock;
+    ui_args[3] = &client_fd;
 
     thrd_t ui_thread;
     thrd_create(&ui_thread, init_ui, ui_args);
@@ -113,7 +112,7 @@ int main(int argc, char *argv[]){
 
     while(client_active){
         // Only use terminal input when there is no UI
-        if(*ui_initialized == 0){
+        if(ui_initialized == 0){
             char message[MESSAGE_LEN];
             memset(message, 0, MESSAGE_LEN);
             fgets(message, sizeof(message), stdin);
@@ -143,7 +142,6 @@ int main(int argc, char *argv[]){
 
     free(ui_args);
     free(new_message);
-    free(ui_initialized);
     //PROPERLY FREE THE WHOLE LINKED LIST LATER
     free(message_log);
     
@@ -182,7 +180,7 @@ THRDFUNC server_listen(void* arg){
         char final[USERNAME_LEN+MESSAGE_LEN+2];
         snprintf(final, sizeof(final), "%s: %s", usr_buffer, decrypted_msg);
 
-        if(*ui_initialized == 0){
+        if(ui_initialized == 0){
             printf("%s", final);
         }
 

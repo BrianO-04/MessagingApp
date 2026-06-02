@@ -11,13 +11,12 @@ THRDFUNC init_ui(void* arg){
 
     void **ui_args = (void**)arg;
 
-    int* ui_initialized = (int*)ui_args[0];
-    int* new_message = (int*)ui_args[1];
-    struct log* message_log = (struct log*)ui_args[2];
-    mtx_t *log_lock = (mtx_t*)ui_args[3];
-    int client_fd = *(int*)ui_args[4];
+    int* new_message = (int*)ui_args[0];
+    struct log* message_log = (struct log*)ui_args[1];
+    mtx_t *log_lock = (mtx_t*)ui_args[2];
+    int client_fd = *(int*)ui_args[3];
 
-    *ui_initialized = 1;
+    //*ui_initialized = 1;
 
     // TINY AES SETUP
     // Encryption ctx
@@ -98,9 +97,9 @@ THRDFUNC init_ui(void* arg){
         }
 
         // Message Display Logic
+        mtx_lock(log_lock);
         if(*new_message == 1){
             werase(win);
-            mtx_lock(log_lock);
 
             int line = 1;
 
@@ -118,12 +117,12 @@ THRDFUNC init_ui(void* arg){
             }
 
             *new_message = 0;
-            
-            mtx_unlock(log_lock);
+
         }else{
             wmove(win, IN_LINE, 1);
             wclrtoeol(win);
         }
+        mtx_unlock(log_lock);
         mvwprintw(win, IN_LINE, 1, "%s", msg);
         box(win, 0, 0);
         wrefresh(win);
