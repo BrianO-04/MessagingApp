@@ -15,6 +15,7 @@ THRDFUNC init_ui(void* arg){
     struct log* message_log = (struct log*)ui_args[1];
     mtx_t *log_lock = (mtx_t*)ui_args[2];
     int client_fd = *(int*)ui_args[3];
+    char* uname = (char*)ui_args[4];
 
     //*ui_initialized = 1;
 
@@ -69,7 +70,7 @@ THRDFUNC init_ui(void* arg){
                 send(client_fd, encrypted, MESSAGE_LEN, 0);
 
                 mtx_lock(log_lock);
-                add_log(message_log, encrypted, "SELF", iv);
+                add_log(message_log, encrypted, uname, iv);
                 *new_message = 1;
                 mtx_unlock(log_lock);
 
