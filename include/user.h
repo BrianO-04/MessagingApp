@@ -16,6 +16,7 @@ struct User{
     
     // Linked list thing for hash map
     struct User* next;
+    struct User* last;
 };
 
 #endif // USER_H_
