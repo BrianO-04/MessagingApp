@@ -192,7 +192,10 @@ THRDFUNC connection_listen(void* arg){
         // Get username from client
         cmd_types joincmd = EMPTY;
         int valread = read_mp(new_socket, &joincmd, sizeof(cmd_types));
-        if(joincmd != JOIN) return THRDFAIL;
+        if(joincmd != JOIN){
+            closesocket(new_socket);
+            continue;
+        }
 
         char namebuf[USERNAME_LEN] = { 0 };
         valread = read_mp(new_socket, namebuf, USERNAME_LEN);
@@ -218,32 +221,16 @@ THRDFUNC connection_listen(void* arg){
         new_user->next = NULL;
         new_user->socket = new_socket;
 
-        #if defined(__APPLE__) && defined(__MACH__)
-        pthread_mutex_lock(&hash_mutex);
-        #else
-        // Mutual exclusion, only one thread can modify the hash table at a time  
         mtx_lock(&hash_mutex);
-        #endif
 
-        
-        
         put(new_user->username, new_user, users);
         client_count++;
 
-        #if defined(__APPLE__) && defined(__MACH__)
-        // Create a new thread for listening to that client's messages
-        pthread_t client_thread;
-        pthread_create(&client_thread, NULL, client_listen, new_user);
-
-        pthread_mutex_unlock(&hash_mutex);
-        #else
         // Create a new thread for listening to that client's messages
         thrd_t client_thread;
         thrd_create(&client_thread, client_listen, new_user);
 
         mtx_unlock(&hash_mutex);
-        #endif
-
         
     }
 
@@ -327,6 +314,7 @@ void send_to_all(char* sender_id, char* msg, uint8_t* iv, int is_server){
     char cpy[MESSAGE_LEN];
     memcpy(cpy, msg, MESSAGE_LEN);
     
+    mtx_lock(&hash_mutex);
     for(int i = 0; i < MAX_CLIENTS; i++){
         if(users[i] != NULL){
             struct User* curr = users[i];
@@ -344,18 +332,17 @@ void send_to_all(char* sender_id, char* msg, uint8_t* iv, int is_server){
             }
         }
     }
+    mtx_unlock(&hash_mutex);
 }
 
 void send_to_ID(char* client_id, char* msg, size_t size){
+    mtx_lock(&hash_mutex);
     struct User* target = get(client_id, users);
     send(target->socket, msg, strlen(msg), 0);
+    mtx_unlock(&hash_mutex);
 }
 
-#if defined(_WIN32)
 void print_log(SOCKET client){
-#else
-void print_log(int client){
-#endif
     struct message* current = message_log->head;
     while(current != NULL){
         send(client, current->iv, AES_BLOCKLEN, 0);
