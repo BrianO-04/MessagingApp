@@ -37,6 +37,7 @@ int put(char* key, struct User* user, struct User** hash_table){
         curr = curr->next;
     }
     curr->next = user;
+    user->last = curr;
 
     return 1;
 }
@@ -57,22 +58,28 @@ struct User* get(char* key, struct User** hash_table){
 }
 
 int delete(char* key, struct User** hash_table){
-
     int hash_index = hash(key);
-    
-    if(hash_table[hash_index] == NULL){
-        return 1;
-    }else if(hash_table[hash_index]->next == NULL){
-        free(hash_table[hash_index]);
-        hash_table[hash_index] = NULL;
-        return 1;
-    }else{
-        struct User* curr = hash_table[hash_index];
+
+    struct User *curr = hash_table[hash_index];
+
+    while(curr != NULL && strcmp(curr->username, key) != 0)
+        curr = curr->next;
+
+    if(curr == NULL)
+        return 0;
+
+    if(curr->last){
+        curr->last->next = curr->next;
+    }
+    else{
         hash_table[hash_index] = curr->next;
-        free(curr->username);
-        free(curr);
-        return 1;
+    }
+    if(curr->next){
+        curr->next->last = curr->last;
     }
 
-    return 0;
+    free(curr->username);
+    free(curr);
+
+    return 1;
 }
