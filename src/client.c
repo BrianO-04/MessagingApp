@@ -24,43 +24,6 @@ struct AES_ctx dec_ctx;
 
 char username[USERNAME_LEN];
 
-// Plain Terminal UI for testing
-int main(int argc, char *argv[]){
-    if(argc != 3){
-        printf("Expected usage: ./MessagingApp {name} {IP}\n");
-        return EXIT_FAILURE;
-    }
-
-    int* new_msg = malloc(sizeof(int));
-    mtx_t* logLock = malloc(sizeof(mtx_t));
-    struct log* msg_log = client_init(argv[1], argv[2], new_msg, logLock);
-    if(msg_log == NULL){
-        printf("Failed to initialize client\n");
-        return -1;
-    }
-
-    struct AES_ctx aes_ctx;
-    uint8_t iv[AES_BLOCKLEN] = {0};
-    AES_init_ctx_iv(&aes_ctx, aes_key, iv);
-
-    while(client_active){
-        mtx_lock(logLock);
-        if(*new_msg == 1){
-            AES_init_ctx_iv(&aes_ctx, aes_key, msg_log->tail->iv);
-
-            char decrypted_msg[MESSAGE_LEN];
-            memcpy(decrypted_msg, msg_log->tail->msg, MESSAGE_LEN);
-            AES_CBC_decrypt_buffer(&aes_ctx, (uint8_t*)decrypted_msg, MESSAGE_LEN);
-
-            printf("%s\n", decrypted_msg);
-        }
-        *new_msg = 0;
-        mtx_unlock(logLock);
-    }
-
-    return 0;
-}
-
 struct log* client_init(char* uname, char* ip, int* new_msg, mtx_t* logLock){
     #if defined(_WIN32)
     // WSADATA startup required for windows sockets
