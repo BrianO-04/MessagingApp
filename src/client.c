@@ -203,3 +203,10 @@ void send_msg(char msg[MESSAGE_LEN]){
     *new_message = 1;
     mtx_unlock(log_lock);
 }
+
+void decrypt_msg(char dest[MESSAGE_LEN], struct message* src){
+    AES_init_ctx_iv(&dec_ctx, aes_key, src->iv);
+    char decrypted_msg[MESSAGE_LEN];
+    memcpy(decrypted_msg, src->msg, MESSAGE_LEN);
+    AES_CBC_decrypt_buffer(&dec_ctx, (uint8_t*)decrypted_msg, MESSAGE_LEN);
+}
