@@ -7,8 +7,9 @@
 
 THRDFUNC server_listen(void* arg);
 
-int client_init(char* uname, char* ip);
+struct log* client_init(char* uname, char* ip, int* new_msg, mtx_t* logLock);
 
-
+void send_code(cmd_types cmd);
+void send_msg(char msg[MESSAGE_LEN]);
 
 #endif
