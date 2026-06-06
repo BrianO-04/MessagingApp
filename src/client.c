@@ -21,6 +21,11 @@ mtx_t log_lock;
 
 // Plain Terminal UI for testing
 int main(int argc, char *argv[]){
+    if(argc != 3){
+        printf("Expected usage: ./MessagingApp {name} {IP}\n");
+        return EXIT_FAILURE;
+    }
+
     int status = client_init(argv[1], argv[2]);
     if(status != 0){
         printf("Failed to initialize client\n");
