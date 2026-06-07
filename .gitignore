@@ -57,6 +57,9 @@ dkms.conf
 # cmake build folder
 build/
 
+# Libraries
+lib/
+
 # vscode
 .vscode/
 

@@ -22,7 +22,7 @@ CMake must be installed
 # Windows build instructions
 To build on Windows you must first build the PDCurses library which can be found at https://pdcurses.org/
 
-Once you have built the library, create a "lib" folder in the root of the project and copy your built pdcurses.lib file to it.
+Once you have built the library, create a "lib" folder in the root of the project and copy your built pdcurses.lib file and curses.h to it.
 ## How to compile (PowerShell)
 	$ git clone https://github.com/BrianO-04/MessagingApp.git/
 	$ cd MessagingApp	
