@@ -30,6 +30,9 @@ int main(int argc, char *argv[]){
 
     // Curses window setup
     initscr();
+
+    resize_term(35, 130);
+
     cbreak();
     noecho();
     WINDOW* win = newwin(33, MESSAGE_LEN/2, 0, 0);
