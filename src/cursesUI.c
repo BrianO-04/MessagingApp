@@ -8,36 +8,32 @@
 #include <string.h>
 #include "cursesUI.h"
 #include "messagelog.h"
-#include "aes.h"
-#include "macros.h"
+
+#include "client.h"
 
 #define IN_LINE 31
 
-THRDFUNC init_ui(void* arg){
+int main(int argc, char *argv[]){
+    if(argc != 3){
+        printf("Expected usage: ./MessagingApp {name} {IP}\n");
+        return EXIT_FAILURE;
+    }
+    // Client backend setup
+    int* new_message = malloc(sizeof(int));
+    mtx_t* log_lock = malloc(sizeof(mtx_t));
 
-    void **ui_args = (void**)arg;
+    struct log* message_log = client_init(argv[1], argv[2], new_message, log_lock);
+    if(message_log == NULL){
+        printf("Failed to initialize client\n");
+        return -1;
+    }
 
-    int* new_message = (int*)ui_args[0];
-    struct log* message_log = (struct log*)ui_args[1];
-    mtx_t *log_lock = (mtx_t*)ui_args[2];
-    int client_fd = *(int*)ui_args[3];
-    char* uname = (char*)ui_args[4];
-    int* client_active = (int*)ui_args[5];
-
-    //*ui_initialized = 1;
-
-    // TINY AES SETUP
-    // Encryption ctx
-    struct AES_ctx enc_ctx;
-    uint8_t iv1[AES_BLOCKLEN] = {0};
-    AES_init_ctx_iv(&enc_ctx, aes_key, iv1);
-    // Decryption ctx
-    struct AES_ctx dec_ctx;
-    uint8_t iv2[AES_BLOCKLEN] = {0};
-    AES_init_ctx_iv(&dec_ctx, aes_key, iv2);
-
-    // Set up window
+    // Curses window setup
     initscr();
+    #if defined(_WIN32)
+    resize_term(35, 130);
+    #endif
+
     cbreak();
     noecho();
     WINDOW* win = newwin(33, MESSAGE_LEN/2, 0, 0);
@@ -60,34 +56,14 @@ THRDFUNC init_ui(void* arg){
         if(curr != ERR){
             if(curr == '\n'){
                 if(strcmp(msg, "/EXIT") == 0){
-                    cmd_types ext_cmd = USR_EXIT;
-                    send(client_fd, &ext_cmd, sizeof(cmd_types), 0);
+                    send_code(USR_EXIT);
 
                     werase(win);
                     wrefresh(win);
 
-                    *client_active = 0;
+                    break;
                 }else{
-                    //Send message
-                    cmd_types msg_cmd = MESSAGE;
-                    send(client_fd, &msg_cmd, sizeof(cmd_types), 0);
-
-                    send(client_fd, enc_ctx.Iv, AES_BLOCKLEN, 0);
-
-                    uint8_t iv[AES_BLOCKLEN] = { 0 };
-                    memcpy(iv, enc_ctx.Iv, AES_BLOCKLEN);
-
-                    //Encrypt message
-                    char encrypted[MESSAGE_LEN];
-                    memcpy(encrypted, msg, MESSAGE_LEN);
-                    AES_CBC_encrypt_buffer(&enc_ctx, (uint8_t*)encrypted, MESSAGE_LEN);
-            
-                    send(client_fd, encrypted, MESSAGE_LEN, 0);
-
-                    mtx_lock(log_lock);
-                    add_log(message_log, encrypted, uname, iv);
-                    *new_message = 1;
-                    mtx_unlock(log_lock);
+                    send_msg(msg);
 
                     memset(msg, '\0', MESSAGE_LEN);
                     ind = 0;
@@ -122,12 +98,9 @@ THRDFUNC init_ui(void* arg){
 
             struct message* curr = message_log->head;
             while(curr != NULL){
-
                 // Decrypt current message
-                AES_init_ctx_iv(&dec_ctx, aes_key, curr->iv);
                 char decrypted_msg[MESSAGE_LEN];
-                memcpy(decrypted_msg, curr->msg, MESSAGE_LEN);
-                AES_CBC_decrypt_buffer(&dec_ctx, (uint8_t*)decrypted_msg, MESSAGE_LEN);
+                decrypt_msg(decrypted_msg, curr);
 
                 mvwprintw(win, line++, 1, "%s: %s", curr->usr, decrypted_msg);
                 curr = curr->next;
@@ -145,6 +118,10 @@ THRDFUNC init_ui(void* arg){
         wrefresh(win);
     }
 
-    thrd_exit(THRDEXIT);
-    return THRDEXIT;
+    free(new_message);
+    mtx_destroy(log_lock);
+    free(log_lock);
+    // Properly close the client listening thread later
+
+    return 0;
 }

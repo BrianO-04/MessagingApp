@@ -5,14 +5,12 @@
 #include "messagelog.h"
 
 
-int main(int argc, char *argv[]);
+THRDFUNC server_listen(void* arg);
 
-#if defined(__APPLE__) && defined(__MACH__)
-void* server_listen(void* arg);
-#else
-int server_listen(void* arg);
-#endif
+struct log* client_init(char* uname, char* ip, int* new_msg, mtx_t* logLock);
 
-
+void send_code(cmd_types cmd);
+void send_msg(char msg[MESSAGE_LEN]);
+void decrypt_msg(char dest[MESSAGE_LEN], struct message* src);
 
 #endif

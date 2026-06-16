@@ -66,6 +66,8 @@ int read_mp(int fd, void* buf, size_t nbytes);
 #define mtx_init pthread_mutex_init
 #define mtx_plain NULL
 
+#define mtx_destroy pthread_mutex_destroy
+
 #define mtx_t pthread_mutex_t
 
 #define thrd_t pthread_t
